@@ -1,0 +1,256 @@
+%{
+
+    /*
+
+    ulimit -c unlimited
+    >> make
+    >> ./csimple <test
+    >> ls
+    >> ls -la core
+
+    >>gdb csimple
+    >> r < test
+    >> y
+    >> bt //back trace the crash.
+    >> print m_type
+    >>
+    */
+    #include <cstdio>
+    #include <cstdlib>
+
+    #include "ast.hpp"
+    #include "primitive.hpp"
+    #include "symtab.hpp"
+
+    #define YYDEBUG 1
+
+    extern Program_ptr ast;
+    int yylex(void);
+    void yyerror(const char *);
+%}
+
+/* Enables verbose error messages */
+%error-verbose
+
+/** WRITE ME:
+ *  - Put all your token definitions here
+ *  - Put all your type definitions here
+ *  - Put all your precedence/associativity rules here
+ */
+
+ //Order of operation Precedence:
+//level-18
+%left T_comma
+//level-16
+%right T_assign
+//level-14
+%left T_or
+//level-13
+%left T_and
+//level-9
+%left T_isEq
+%left T_notEq
+//level -8
+%left T_less
+%left T_lessOrEq
+%left T_great
+%left T_greatOrEq
+//levl-6
+%left T_plus T_minus
+//level-5
+%left T_times T_divide T_mod
+//Level-3
+%right T_not
+%right T_deRef
+%right T_addr
+//Level-2
+%token T_openCurly
+%token T_closeCurly
+%token T_openBracket
+%token T_closeBracket
+%token T_openParen
+%token T_closeParen
+//End of Operator Precedence.
+
+//literals
+%token T_true
+%token T_false
+%token T_string
+%token T_char
+%token T_num_oct
+%token T_num_bin
+%token T_num_hex
+%token T_num_dec
+%token T_null
+//loop and conditional
+%token T_if
+%token T_else
+%token T_while
+//Types
+%token T_bool_type
+%token T_char_type
+%token T_int_type
+%token T_string_type
+%token T_intptr_type
+%token T_charptr_type
+//Syntax
+%token T_proc
+%token T_return
+%token T_var
+%token T_identifier
+%token T_col
+%token T_semiCol
+%token T_pipe
+
+%%
+
+//The first and only main of the file.
+Main        : Procedure
+            {
+                ast = new ProgramImpl($1.u_proc_list);
+            }
+;
+
+//used when already inside a procedure.
+Procedure  : T_proc T_identifier T_openParen ParamList T_closeParen  T_return Type T_openCurly BodyProc T_closeCurly Procedure{
+                ($11.u_proc_list)->push_front(new ProcImpl( new SymName($2.u_base_charptr), $4.u_decl_list, $7.u_type, $9.u_procedure_block)); $$ = $11;}
+            | {$$.u_proc_list = new std::list<Proc_ptr>();}
+;
+
+//types given to identifiers
+Type        : T_bool_type   {$$.u_type = new TBoolean();}
+            | T_int_type   {$$.u_type = new TInteger();}
+            | T_intptr_type {$$.u_type = new TIntPtr();}
+            | T_charptr_type {$$.u_type = new TCharPtr();}
+            | T_char_type {$$.u_type = new TCharacter();}
+            | T_string_type T_openBracket Num T_closeBracket {$$.u_type = new TString($3.u_primitive);}
+;
+
+//parameters for declaration.
+//  "(" IDA_0  ","  ...  ","  ID0_N  ":"  TYPE1  ";" IDB_0  ","  IDB_N  ":"  TYPE2;  ...  TYPEN  ")"
+ParamList           : T_identifier ParamListSameType T_col  Type ParamListNewType { // first param in procedure def
+                        ($2.u_symname_list)->push_front(new SymName($1.u_base_charptr));
+                        ($5.u_decl_list)->push_front(new DeclImpl($2.u_symname_list, $4.u_type)); $$ = $5;}
+                    | {$$.u_decl_list = new std::list<Decl_ptr>(); } /*construct declaration list of the variables with different types.*/
+;
+ParamListSameType   : T_comma T_identifier ParamListSameType{ //add more to list of params and reset current pointer, to where the list will be built.
+                        ($3.u_symname_list)->push_front(new SymName($2.u_base_charptr)); $$ = $3;}
+                    | {$$.u_symname_list = new std::list<SymName_ptr>();}/*construct list of variables of same type, where the stack will be dumped into.*/
+;
+ParamListNewType    : T_semiCol ParamList{ //add an identifier with a different type for the params
+                        /*($2.u_symname_list)->push_front(new SymName($2.u_base_charptr));*/ $$ = $2;}
+                    | ParamList { $$ = $1;} //Redirect cur pointer to new non-terminal to add more or finish adding parameters.
+;
+
+//parameters for call.
+Params              : Expr ParamsMore{
+                        ($2.u_expr_list)->push_front($1.u_expr); $$ = $2;}
+                    |   {$$.u_expr_list = new std::list<Expr_ptr>();}
+;
+ParamsMore          : T_comma Expr ParamsMore{ ($3.u_expr_list)->push_front($2.u_expr); $$ = $3;}
+                    |   {$$.u_expr_list = new std::list<Expr_ptr>();}
+;
+
+//This might be better... then the below rule.
+BodyProc        : Procedure BodyVar BodyState Return {
+                    $$.u_procedure_block =  new Procedure_blockImpl($2.u_decl_list, $1.u_proc_list,  $3.u_stat_list, $4.u_return_stat);}
+;
+
+Return          : T_return Expr T_semiCol{ $$.u_return_stat = new Return($2.u_expr); }
+;
+
+// variable declarations or transition to body statements.
+BodyVar         : T_var T_identifier BodyVarSameType T_col Type T_semiCol BodyVar { //push back current identifier to
+                    ($3.u_symname_list)->push_front(new SymName($2.u_base_charptr));
+                    ($7.u_decl_list)->push_front(new DeclImpl($3.u_symname_list, $5.u_type)); $$ = $7;}
+                |{   //finish declaration of variables, so construct the list, of lists of variables with the same type.
+                    $$.u_decl_list = new std::list<Decl_ptr>();}
+;
+// map multiple idenifiers to the same type or declare new variables of a different type.
+BodyVarSameType : T_comma T_identifier BodyVarSameType{ // add more variables with same type.
+                    ($3.u_symname_list)->push_front(new SymName($2.u_base_charptr)); $$ = $3;}
+                | { //Construct a List where all variables of the same type will be placed.
+                    $$.u_symname_list = new std::list<SymName_ptr>();}
+;
+
+// statements of the body
+BodyState   : Lhs T_assign Expr T_semiCol BodyState{//assign a value from lhs to rhs
+                ($5.u_stat_list)->push_front(new Assignment($1.u_lhs, $3.u_expr));  $$ = $5;}
+
+            | Lhs T_assign T_string T_semiCol BodyState{
+                ($5.u_stat_list)->push_front(new StringAssignment($1.u_lhs, new StringPrimitive($3.u_base_charptr))); $$ = $5;}
+
+            | T_openCurly BodyVar BodyState T_closeCurly BodyState /*start a new code block*/{
+                ($5.u_stat_list)->push_front( new CodeBlock(new Nested_blockImpl($2.u_decl_list, $3.u_stat_list)));  $$ = $5;}
+
+            | T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly BodyState/*one or more if statements, with or without else at the end*/ {
+                ($9.u_stat_list)->push_front(new IfNoElse($3.u_expr, new Nested_blockImpl($6.u_decl_list, $7.u_stat_list))); $$ = $9;}
+
+            | T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly T_else T_openCurly BodyVar BodyState T_closeCurly BodyState{
+                ($14.u_stat_list)->push_front(new IfWithElse($3.u_expr, new Nested_blockImpl($6.u_decl_list, $7.u_stat_list), new Nested_blockImpl($11.u_decl_list, $12.u_stat_list)));$$ =$14;}
+            | T_while T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly BodyState{   //whiles can happen at beggining of block
+
+                ($9.u_stat_list)->push_front(new WhileLoop($3.u_expr, new Nested_blockImpl($6.u_decl_list, $7.u_stat_list))); $$ = $9;}
+
+            | Lhs T_assign T_identifier T_openParen Params T_closeParen T_semiCol BodyState  /*make a call to a procedure*/{
+                ($8.u_stat_list)->push_front(new Call($1.u_lhs, new SymName($3.u_base_charptr), $5.u_expr_list)); $$=$8;}
+            |  /* end of code block*/{ $$.u_stat_list = new std::list<Stat_ptr>();}
+;
+
+//LHS can be a variable, a sting element or a derefed pointer.
+Lhs     : T_identifier  { $$.u_lhs = new Variable(new SymName($1.u_base_charptr));}
+        | T_identifier T_openBracket Expr T_closeBracket{ $$.u_lhs = new ArrayElement(new SymName($1.u_base_charptr), $3.u_expr);}
+        | T_deRef T_identifier { $$.u_lhs = new DerefVariable(new SymName($2.u_base_charptr));}
+;
+
+//Expression recursive statements
+Expr    : T_pipe Expr T_pipe    { $$.u_expr = new AbsoluteValue($2.u_expr);}
+        | Expr T_less Expr      { $$.u_expr = new Lt($1.u_expr, $3.u_expr);}
+        | Expr T_lessOrEq Expr  { $$.u_expr = new Lteq($1.u_expr, $3.u_expr);}
+        | Expr T_great Expr     { $$.u_expr = new Gt($1.u_expr, $3.u_expr);}
+        | Expr T_greatOrEq Expr { $$.u_expr = new Gteq($1.u_expr, $3.u_expr);}
+        | Expr T_isEq Expr      { $$.u_expr = new Compare($1.u_expr, $3.u_expr);}
+        | Expr T_notEq Expr     { $$.u_expr = new Noteq($1.u_expr, $3.u_expr);}
+        | Expr T_and Expr       { $$.u_expr = new And($1.u_expr, $3.u_expr);}
+        | Expr T_or Expr        { $$.u_expr = new Or($1.u_expr, $3.u_expr);}
+        | Expr T_times Expr     { $$.u_expr = new Times($1.u_expr, $3.u_expr);}
+        | Expr T_divide Expr    { $$.u_expr = new Div($1.u_expr, $3.u_expr);}
+        | Expr T_plus Expr      { $$.u_expr = new Plus($1.u_expr, $3.u_expr);}
+        | Expr T_minus Expr     { $$.u_expr = new Minus($1.u_expr, $3.u_expr);}
+        | T_openParen Expr T_closeParen                 { $$.u_expr = $2.u_expr; }
+//UnaryExpressions
+        | T_not Expr            { $$.u_expr = new Not($2.u_expr);}
+        | T_minus Expr          {$$.u_expr = new Uminus($2.u_expr);}
+        | T_plus Expr           {$$.u_expr = $2.u_expr;} //Disregard any consecutive plus.
+        | T_addr Lhs            {$$.u_expr = new AddressOf($2.u_lhs);}
+        | T_deRef Expr          { $$.u_expr = new Deref($2.u_expr);}
+//Variables and array access.
+        | T_identifier          {$$.u_expr = new Ident(new SymName($1.u_base_charptr));}
+        | T_identifier T_openBracket Expr T_closeBracket{ $$.u_expr = new ArrayAccess(new SymName($1.u_base_charptr), $3.u_expr);}
+//Literals
+        | Num                   { $$.u_expr = new IntLit($1.u_primitive);}
+        | T_true                {$$.u_expr = new BoolLit(new Primitive($1.u_base_int));}
+        | T_false               {$$.u_expr = new BoolLit(new Primitive($1.u_base_int));}
+        | T_char                {$$.u_expr = new CharLit(new Primitive($1.u_base_int));}
+        | T_null                {$$.u_expr = new IntLit(new Primitive($1.u_base_int));}
+
+;
+
+//Different types of numbers.
+Num     : T_num_dec {$$.u_primitive =  new Primitive($1.u_base_int);}
+        | T_num_oct {$$.u_primitive =  new Primitive($1.u_base_int);}
+        | T_num_bin {$$.u_primitive =  new Primitive($1.u_base_int);}
+        | T_num_hex {$$.u_primitive =  new Primitive($1.u_base_int);}
+%%
+
+/** You shall not pass!
+ *  You should not  have to do or edit anything past this.
+ */
+
+extern int yylineno;
+
+void yyerror(const char *s)
+{
+    fprintf(stderr, "%s at line %d\n", s, yylineno);
+    return;
+}

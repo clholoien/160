@@ -1,0 +1,11 @@
+CmpSci 160 - Compilers
+Project 3
+
+Carson Holoien
+11/08/2016
+
+In the Parser.ypp file there token defenitions at the start that will give the precedence for each of the operations.  Some are left associative and others are right.  Underneath these definitions there are grammar rules and productions that specify the csimple syntax.  Some of My grammar was modified from the previous project because, the non terminals did not utilize the given methods inside of ast.hpp.  Also I received a 97% from the previous project, because I was not allowing multiple procedures at the top level.  So those changes have been made and now the grammar should be perfect.  I removed some non-terminals, because the token definitions handled the precedence and associativity need.  What was tricky in this part, was any sort of list.  So a Procedure List, Declaration list, Body statement list, etc.  During all epsilon transitions creation of the list is necessary where pushing item items onto the list is do in all other non terminals for this particular list.  Whenever a unit transition is needed all that needs to happen is an adjustment of the cur pointer, $$.  In this project, I actually did not have very many problems, and the first time that I ran it I only had 16 errors.  Those consisted of mismatches for constructors in the primitive literals and mismatches for some method declarations.  The largest probelem I ran into was placing the cur pointer to  the rule argument pertaining to the overall stack of the current non-terminal is being produced.  
+
+My last problem with this project was the string assingment.  I had a problem with my lexer, so a change was needed.  I made a change to not include the quotes surrounding the string variable.  So I set the final value of the string to 0 and bumped up the char pointer by one to ignore the first character in the string, the opening quote.  
+
+After this was resolved, all I needed to do was change all push_backs to push_fronts and my graph looks exactly like the correct graphs given in the project description.

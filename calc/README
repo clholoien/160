@@ -1,0 +1,16 @@
+README
+Carson Holoien
+CmpSc160 - Fall 2016
+
+Project 1 - Simple Calculator - Scanner and Parser
+
+In the calc.cpp file you will find 4 classes:
+
+The first is the scanner class.  When a scanner object is constructed, the standard input is read until EOF is reached, then tokenized.  Scan errors will be thrown if a strange character, which is not a Terminal of the calculator grammar.  The way this is implemented, is by putting, pairs, token_type and line_number, into a larger vector that contains all tokenized values of the input.  There is a getNextToken() function, which will return the top value of the vector, and then an eatToken(token), that will pop off the top value of the vector, as long as there is not a mismatch between the value trying to be removed, and the actual value at the top of the vector. These methods will be used in the Parser class.  I had some problems with my scanner, but I resolved it by addiung a conditoinal statement before the switch statement in the scanner constructor.
+
+There is also a Parstree class, that draws the appropriate nodes, during the parsing, however this was given to us.
+
+There is a Parser class, that takes the methods, nextToken() and eatToken(token), from the parser class.  The grammar implemented in Parser, is given inside of the calc_def.y file.  each of the methods in Parser, correspond to non-terminals in the grammar.  when the current terminal is in the first set of the current non-terminal(function), then a method call to a different non-terminal(function) is made, otherwise if the current terminal is in the follow set of the current non-terminal, then an epsilon transition is made, if both of those cases do not happen, then a syntax error is thrown, on the non-terminal.  This class was actually much easier to implement then the scanner class, since I was originally trying to do the extra credit.
+
+The last class is just the main class.  this creates the parser object, and parsetree object, so it also constructs the scanner.  This class was also given.
+

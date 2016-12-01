@@ -1,0 +1,739 @@
+#include <stdio.h>
+#include <iostream>
+#include <stdlib.h>
+#include <assert.h>
+#include <string.h>
+#include <ctype.h>
+#include <stack>
+#include <vector>
+#include <string>
+#include <sstream>
+
+using namespace std;
+
+
+/*** Enums and Print Functions for Terminals and Non-Terminals  **********************/
+
+#define MAX_SYMBOL_NAME_SIZE 25
+
+//all of the terminals in the language
+
+typedef enum {
+  T_eof = 0,    // 0: end of file
+  T_num,        // 1: numbers
+  T_plus,        // 2: +
+  T_minus,    // 3: - 
+  T_times,    // 4: *
+  T_period,    // 5: .
+  T_modulo,     // 6: % 
+  T_openparen,    // 7: (
+  T_closeparen,     // 8: )
+  T_epsilon,
+  T_empty
+} token_type;
+
+//this function returns a string for the token.  It is used in the parsetree_t
+//class to actually dump the parsetree to a dot file (which can then be turned
+//into a picture).  Note that the return char* is a reference to a local copy
+//and it needs to be duplicated if you are a going require multiple instances
+//simultaniously
+char* token_to_string(token_type c) {
+  static char buffer[MAX_SYMBOL_NAME_SIZE];
+  switch( c ) {
+  case T_eof: strncpy(buffer,"eof",MAX_SYMBOL_NAME_SIZE); break;
+  case T_num: strncpy(buffer,"num",MAX_SYMBOL_NAME_SIZE); break;
+  case T_plus: strncpy(buffer,"+",MAX_SYMBOL_NAME_SIZE); break;
+  case T_minus: strncpy(buffer,"-",MAX_SYMBOL_NAME_SIZE); break;
+  case T_times: strncpy(buffer,"*",MAX_SYMBOL_NAME_SIZE); break;
+  case T_period: strncpy(buffer,".",MAX_SYMBOL_NAME_SIZE); break;
+  case T_modulo: strncpy(buffer,"%",MAX_SYMBOL_NAME_SIZE); break;
+  case T_openparen: strncpy(buffer,"(",MAX_SYMBOL_NAME_SIZE); break;
+  case T_closeparen: strncpy(buffer,")",MAX_SYMBOL_NAME_SIZE); break;
+  default: strncpy(buffer,"unknown_token",MAX_SYMBOL_NAME_SIZE); break;
+  }
+  return buffer;
+}
+
+//all of the non-terminals in the grammar (you need to add these in
+//according to your grammar.. these are used for printing the thing out)
+//please follow the convention we set up so that we can tell what the heck you
+//are doing when we grade
+typedef enum {
+  epsilon = 100,
+  NT_List,
+  NT_ListP,
+  NT_Expr,
+  //WRITEME: add symbolic names for your non-terminals here
+  NT_ExprP,
+  NT_Term,
+  NT_TermP,
+  NT_Factor
+} nonterm_type;
+
+//this function returns a string for the non-terminals.  It is used in the parsetree_t
+//class to actually dump the parsetree to a dot file (which can then be turned
+//into a picture).  Note that the return char* is a reference to a local copy
+//and it needs to be duplicated if you are a going require multiple instances
+//simultaniously. 
+char* nonterm_to_string(nonterm_type nt)
+{
+  static char buffer[MAX_SYMBOL_NAME_SIZE];
+  switch( nt ) {
+  case epsilon: strncpy(buffer,"e",MAX_SYMBOL_NAME_SIZE); break;
+  case NT_List: strncpy(buffer,"List",MAX_SYMBOL_NAME_SIZE); break;
+    //WRITEME: add the other nonterminals you need here
+  case NT_ListP: strncpy(buffer, "ListP", MAX_SYMBOL_NAME_SIZE); break;
+    
+  case NT_Expr: strncpy(buffer,"Expr",MAX_SYMBOL_NAME_SIZE); break;
+  case NT_ExprP: strncpy(buffer,"ExprP",MAX_SYMBOL_NAME_SIZE); break;
+  case NT_Term: strncpy(buffer,"Term",MAX_SYMBOL_NAME_SIZE); break;
+  case NT_TermP: strncpy(buffer,"TermP",MAX_SYMBOL_NAME_SIZE); break;
+  case NT_Factor: strncpy(buffer,"Factor",MAX_SYMBOL_NAME_SIZE); break;
+  default: strncpy(buffer,"unknown_nonterm",MAX_SYMBOL_NAME_SIZE); break;
+  }
+  return buffer;
+}
+
+/*** Scanner Class ***********************************************/
+
+class scanner_t {
+public:
+
+  //eats the next token and prints an error if it is not of type c
+  void eat_token(token_type c);
+
+  //peeks at the lookahead token
+  token_type next_token();
+
+  //return line number for errors
+  int get_line();
+
+  //constructor - inits g_next_token
+  scanner_t();
+  
+  //vector used to hold all pairs of tokens, and line number.
+  vector< pair<token_type, int> > expressions;
+    
+
+private:
+
+  //WRITEME: Figure out what you will need to write the scanner
+  //and to implement the above interface.  It does not have to
+  //be a state machine or anything fancy.  Just read in the
+  //characters one at a time (using getchar would be a good way)
+  //and group them into tokens.  All of the tokens in this calculator
+  //are trivial except for the numbers, so it should not be that bad
+  //(10 lines or so)
+    
+  //used to retain the value of each number terminal.
+  //Not being used.
+  class tokenTracker{
+  public:
+
+    token_type token;
+    int value;
+        
+    tokenTracker(token_type t, int value){
+      t=t;
+      value = value;
+    }
+  };
+    
+  //Helper function to push tokens onto the expressions vector.
+  void pushToken(token_type t, int lineNumber);
+    
+
+  int lineNumber;
+  int tokenIndex;
+
+  //This is a bogus member for implementing a useful stub, it should
+  //be cut out once you get the scanner up and going.
+  token_type bogo_token;
+
+    
+  //error message and exit if weird character
+  void scan_error(char x);
+  //error message and exit for mismatch
+  void mismatch_error(token_type c);
+
+};
+
+token_type scanner_t::next_token()
+{
+  //WRITEME: replace this bogus junk with code that will take a peek
+  //at the next token and return it to the parser.  It should _not_
+  //actually consume a token - you should be able to call next_token()
+  //multiple times without actually reading any more tokens in
+    
+  //return the token that's "next" in the currentExpression.
+  return expressions.front().first;
+}
+
+void scanner_t::eat_token(token_type c)
+{
+  //if we are supposed to eat token c, and it does not match
+  //what we are supposed to be reading from file, then it is a 
+  //mismatch error ( call - mismatch_error(c) )
+
+  //WRITEME
+    
+  if ( next_token() != c )
+    mismatch_error(c);
+    
+  else//delete item off the front if it is not a mismatch.
+    expressions.erase(expressions.begin());
+}
+
+scanner_t::scanner_t()
+{
+  //Build each expression using tokens, and add it to a larger list of expressions.
+  //WRITEME
+  token_type t_current = T_eof;
+  token_type t_old = T_eof;
+  lineNumber = 1;
+  int oldLineNum = 0;
+  string input;
+  bool numTerminalRead = false;
+  bool numInProgress = false;
+  bool error = false;
+  //initialize string to concatenate the value of the integer.
+  string terminalNum ("");
+
+  //read an entire line in from stdin, until EOF is read.
+  while(getline(cin, input)){
+        
+    for(int i = 0; i < input.length(); i++){
+      error = false;
+      // numTerminalRead = false;
+      if(input[i] != '\t' && input[i] != ' '){
+	
+	switch(input[i]){
+                    
+	case'+': t_current = T_plus;
+	  break;
+	case'-': t_current  = T_minus;
+	  break;
+	case'*': t_current = T_times;
+	  break;
+	case'.': t_current= T_period;
+	  break;
+	case'%': t_current = T_modulo;
+	  break;
+	case'(': t_current = T_openparen;
+	  break;
+	case')': t_current = T_closeparen;
+	  break;
+                    
+	default:
+	  // gathers up all corresponding num values to combine into one term.
+	  if(input[i] >= '0' && input[i] <= '9'){
+	    //numInProgress = true;
+	    //numTerminalRead = true;
+	    //terminalNum += input[i];
+	    //t_old = T_num;  //save the old terminal, to be used when a char is read.
+	    //oldLineNum = lineNumber;
+	    t_current = T_num;
+	  }
+	  else if(input[i] < 0){
+	    t_current = T_eof;
+	  }
+	
+	  else{
+	    //throw scan error if weird character.
+	    error = true;
+	    scan_error(input[i]);
+	  }
+	  break;
+	}
+      
+      //To push onto the expressions stack, we must currently be reading a valid character
+      //that is not a number.  If it is a number, we must wait till all digits are processed.
+      /*if(numTerminalRead == false && error == false){
+                
+	//we want to push the num terminal once a non num terminal is read.
+	if(numInProgress == true){
+                   
+	  pushToken(t_old, oldLineNum);
+                   
+	  //reset terminal string, because we do not have a number in progress.
+	  //terminalNum = "";
+	  numInProgress = false;
+	} //i
+                
+	//we want to push the terminal found.
+	if(t_current != T_num){
+	  //maybe use a different number value then 0.
+	  pushToken(t_current, lineNumber);
+	}
+      */
+      if(!error)
+        expressions.push_back(make_pair(t_current, lineNumber));
+      }
+    }
+    //increase line number once the input line is read.
+    lineNumber++;
+  }
+  //add the end of file token to the end.
+  pushToken(T_eof, lineNumber);
+}
+
+void scanner_t::pushToken( token_type t, int lineNum){
+  
+  expressions.push_back(make_pair(t, lineNum));
+}
+
+int scanner_t::get_line()
+{
+  //WRITEME
+  //returns line number of the top item on the
+  return expressions.front().second;
+}
+
+void scanner_t::scan_error (char x)
+{
+  fprintf(stderr,"scan error: unrecognized character '%c'\n",x);  
+  exit(1);
+
+}
+
+void scanner_t::mismatch_error (token_type x)
+{
+  fprintf(stderr,"syntax error: found %s ",token_to_string(next_token()) );
+  fprintf(stderr,"expecting %s - line %d\n", token_to_string(x), get_line());
+  exit(1);
+}
+
+
+
+/*** ParseTree Class **********************************************/
+
+//just dumps out the tree as a dot file.  The interface is described below
+//on the actual methods.  This class is full and complete.  You should not
+//have to touch a thing if everything goes according to plan.  While you don't
+//have to modify it, you will have to call it from your recursive decent
+//parser, so read about the interface below.
+class parsetree_t {
+public:
+  void push(token_type t);
+  void push(nonterm_type nt);
+  void pop();
+  void drawepsilon();
+  parsetree_t();
+private:
+  enum stype_t{
+    TERMINAL=1,
+    NONTERMINAL=0,
+    UNDEF=-1
+  };
+
+  struct stuple { 
+    nonterm_type nt;
+    token_type t;
+    stype_t stype; 
+    int uniq;
+  };
+  void printedge(stuple temp); //prints edge from TOS->temp
+  stack<stuple> stuple_stack;
+  char* stuple_to_string(const stuple& s); 
+  int counter;
+};
+
+
+//the constructer just starts by initializing a counter (used to uniquely
+//name all the parse tree nodes) and by printing out the necessary dot commands
+parsetree_t::parsetree_t()
+{
+  counter = 0;
+  printf("digraph G { page=\"8.5,11\"; size=\"7.5, 10\"\n");
+}
+
+//This push function takes a non terminal and keeps it on the parsetree
+//stack.  The stack keeps trace of where we are in the parse tree as
+//we walk it in a depth first way.  You should call push when you start
+//expanding a symbol, and call pop when you are done.  The parsetree_t
+//will keep track of everything, and draw the parse tree as you go.
+//This particular function should be called if you are pushing a non-terminal
+void parsetree_t::push(nonterm_type nt)
+{
+  counter ++;
+  stuple temp;
+  temp.nt = nt;
+  temp.stype = NONTERMINAL;
+  temp.uniq = counter;
+  printedge( temp );
+  stuple_stack.push( temp );
+}
+
+//same as above, but for terminals
+void parsetree_t::push(token_type t)
+{
+  counter ++;
+  stuple temp;
+  temp.t = t;
+  temp.stype = TERMINAL;
+  temp.uniq = counter;
+  printedge( temp );
+  stuple_stack.push( temp );
+}
+
+//when you are parsing a symbol, pop it.  That way the parsetree_t will
+//know that you are now working on a higher part of the tree.
+void parsetree_t::pop()
+{
+  if ( !stuple_stack.empty() ) {
+    stuple_stack.pop();
+  }
+
+  if ( stuple_stack.empty() ) {
+    printf( "}\n" );
+  }
+}
+
+//draw an epsilon on the parse tree hanging off of the top of stack
+void parsetree_t::drawepsilon()
+{
+  push(epsilon);
+  pop();
+}
+
+// this private print function is called from push.  Basically it
+// just prints out the command to draw an edge from the top of the stack (TOS)
+// to the new symbol that was just pushed.  If it happens to be a terminal
+// then it makes it a snazzy blue color so you can see your program on the leaves 
+void parsetree_t::printedge(stuple temp)
+{
+  if ( temp.stype == TERMINAL ) {
+    printf("\t\"%s%d\" [label=\"%s\",style=filled,fillcolor=powderblue]\n",
+	   stuple_to_string(temp),
+	   temp.uniq,
+	   stuple_to_string(temp));
+  } else {
+    printf("\t\"%s%d\" [label=\"%s\"]\n",
+	   stuple_to_string(temp),
+	   temp.uniq,
+	   stuple_to_string(temp));
+  }
+
+  //no edge to print if this is the first node
+  if ( !stuple_stack.empty() ) {
+    //print the edge
+    printf( "\t\"%s%d\" ", stuple_to_string(stuple_stack.top()), stuple_stack.top().uniq ); 
+    printf( "-> \"%s%d\"\n", stuple_to_string(temp), temp.uniq );
+  }
+}
+
+//just a private utility for helping with the printing of the dot stuff
+char* parsetree_t::stuple_to_string(const stuple& s) 
+{
+  static char buffer[MAX_SYMBOL_NAME_SIZE];
+  if ( s.stype == TERMINAL ) {
+    snprintf( buffer, MAX_SYMBOL_NAME_SIZE, "%s", token_to_string(s.t) );
+  } else if ( s.stype == NONTERMINAL ) {
+    snprintf( buffer, MAX_SYMBOL_NAME_SIZE, "%s", nonterm_to_string(s.nt) );
+  } else {
+    assert(0);
+  }
+
+  return buffer;
+}
+
+
+/*** Parser Class ***********************************************/
+
+//the parser_t class handles everything.  It has and instance of scanner_t
+//so it can peek at tokens and eat them up.  It also has access to the
+//parsetree_t class so it can print out the parse tree as it figures it out.
+//To make the recursive decent parser work, you will have to add some
+//methods to this class.  The helper functions are described below
+
+class parser_t {
+private:
+  scanner_t scanner;
+  parsetree_t parsetree;
+    
+  bool inFirstSet(token_type, int);
+  bool inTheFollowSet(token_type, int);
+  void eat_token(token_type t);
+  void syntax_error(nonterm_type);
+
+  void List();
+  //WRITEME: fill this out with the rest of the
+  //recursive decent stuff (more methods)
+
+  void ListP();
+  void Expr();
+  void ExprP();
+  void Term();
+  void TermP();
+  void Factor();
+    
+    
+    
+public:    
+  void parse();
+};
+
+//this function not only eats the token (moving the scanner forward one
+//token), it also makes sure that token is drawn in the parse tree 
+//properly by calling push and pop.
+void parser_t::eat_token(token_type t)
+{
+  parsetree.push(t);
+  scanner.eat_token(t);
+  parsetree.pop();
+}
+
+//call this syntax error wehn you are trying to parse the
+//non-terminal nt, but you fail to find a token that you need
+//to make progress.  You should call this as soon as you can know
+//there is a syntax_error. 
+void parser_t::syntax_error(nonterm_type nt)
+{
+  fprintf(stderr, "syntax error: found %s in parsing %s - line %d\n",
+	 token_to_string( scanner.next_token()),
+	 nonterm_to_string(nt),
+	 scanner.get_line() ); 
+  exit(1); 
+}
+
+//One the recursive decent parser is set up, you simply call parse()
+//to parse the entire input, all of which can be dirived from the start
+//symbol
+void parser_t::parse()
+{
+  List();
+}
+
+//WRITEME: the List() function is not quite right.  Right now
+//it is made to parse the grammar:  List -> '+' List | EOF
+//which is not a very interesting language.  It has been included
+//so you can see the basics of how to structure your recursive 
+//decent code.
+
+
+//Here is an example
+void parser_t::List()
+{
+  //push this non-terminal onto the parse tree.
+  //the parsetree class is just for drawing the finished
+  //parse tree, and should in should have no effect the actual
+  //parsing of the data
+    
+  parsetree.push(NT_List);
+    
+  switch( scanner.next_token() )
+    {
+      //first set of List.
+    case T_num:   
+      Expr(); eat_token(T_period); ListP();
+      break;
+            
+    case T_openparen:
+      Expr(); eat_token(T_period); ListP();
+      break;
+
+      //throw error if no fit was found.
+    default:
+      syntax_error(NT_List);
+      break;
+    }
+    
+  //now that we are done with List, we can pop it from the data
+  //stucture that is tracking it for drawing the parse tree
+  parsetree.pop();
+}
+
+void parser_t::ListP()
+{
+  parsetree.push(NT_ListP);
+  switch( scanner.next_token() )
+    {
+      //first set of List.
+    case T_num:   
+      Expr(); eat_token(T_period); ListP();
+      break;
+            
+    case T_openparen:
+      Expr(); eat_token(T_period); ListP();
+      break;
+
+      //follow set for listP
+    case T_eof:
+      parsetree.drawepsilon();
+      break;
+	
+      //throw error if no fit was found.
+    default:
+      syntax_error(NT_ListP);
+      break;
+    }
+  parsetree.pop();
+}
+
+
+void parser_t:: Expr()
+{
+  parsetree.push(NT_Expr);
+    
+  switch( scanner.next_token() )
+    {
+      //first set of Expr.
+    case T_num:
+      Term(); ExprP();
+      break;
+    case T_openparen:
+      Term(); ExprP();
+      break;
+
+      //throw syntax error if not in the grammar.
+    default:
+      syntax_error(NT_Expr);
+      break;
+            
+    }
+
+  parsetree.pop();
+}
+
+
+void parser_t:: ExprP()
+{
+  parsetree.push(NT_ExprP);
+    
+  switch( scanner.next_token() )
+    {
+      //first set of ExprP.
+    case T_plus:
+      eat_token(T_plus);
+      Term(); ExprP();
+      break;
+    case T_minus:
+      eat_token(T_minus);
+      Term(); ExprP();
+      break;
+        
+      //epsilon transitions, if current term is found in the follow set.
+    case T_closeparen:
+      parsetree.drawepsilon();
+      break;
+    case T_period:
+      parsetree.drawepsilon();
+      break;
+        
+      //if nothing found, then throw a syntax error
+    default:
+      syntax_error(NT_ExprP);
+      break;
+    }
+  parsetree.pop();
+}
+
+
+void parser_t:: Term()
+{
+  parsetree.push(NT_Term);
+    
+  switch( scanner.next_token() )
+    {
+      //first set of Term
+    case T_num:
+      Factor(); TermP();
+      break;
+    case T_openparen:
+      Factor(); TermP();
+      break;
+            
+      //throw syntax error if input is not in the grammar.
+    default:
+      syntax_error(NT_Term);
+      break;
+    }
+  parsetree.pop();
+}
+
+
+void parser_t::TermP()
+{
+  parsetree.push(NT_TermP);
+    
+  switch( scanner.next_token() )
+    {
+      //first set of TermP
+    case T_times:
+      eat_token(T_times);
+      Factor(); TermP();
+      break;
+    case T_modulo:
+      eat_token(T_modulo);
+      Factor(); TermP();
+      break;
+            
+      //epsilon transitions, if current term is found in the follow set.
+    case T_plus:
+      parsetree.drawepsilon();
+      break;
+    case T_minus:
+      parsetree.drawepsilon();
+      break;
+    case T_period:
+      parsetree.drawepsilon();
+      break;
+    case T_closeparen:
+      parsetree.drawepsilon();
+      break;
+            
+      //otherwise throw a syntax error
+    default:
+      syntax_error(NT_TermP);
+      break;
+    }
+  parsetree.pop();
+}
+
+void parser_t:: Factor()
+{
+  parsetree.push(NT_Factor);
+    
+  switch( scanner.next_token() )
+    {
+      //first set of Factor
+    case T_num:
+      eat_token(T_num);
+      break;
+            
+    case T_openparen:
+      eat_token(T_openparen);
+      Expr();
+      eat_token(T_closeparen);
+      break;
+            
+      //No epsilon transitions in Factor.
+            
+      //otherwise throw a syntax error
+    default:
+      syntax_error(NT_Factor);
+      break;
+    }
+  parsetree.pop();
+}
+//WRITEME: you will need to put the rest of the procedures here
+
+
+/*** Main ***********************************************/
+
+int main()
+{
+  /*
+  scanner_t* scanner = new scanner_t();
+  for(int i = 0; i < scanner->expressions.size(); i++){
+    
+    cout<< token_to_string(scanner->expressions[i].first)<<"   "<<scanner->expressions[i].second<< endl;
+    
+    }
+  */
+  parser_t parser;
+  parser.parse();
+  
+  return 0;
+}
+

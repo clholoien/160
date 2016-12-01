@@ -1,0 +1,12 @@
+Compilers Project 4 Type Check
+Carson Holoien
+
+This project was the hardest one so far this quarter.  The most difficult part
+was the scoping.  Understanding where exactly I needed to declare procedures and
+variables was also difficult.  The given default_rule(p) made the view children
+ very easy to implement.  I tested this extensively, and am confident my code
+ will pass everything.
+
+There are comments in the code that describe everything, with checking each and
+every type used in conditional statements, expressions, procedure declarations
+and variables.  

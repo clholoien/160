@@ -1,0 +1,8 @@
+CmpSc160 Project2
+
+Carson Holoien
+10/28/2016
+
+In the "lexer.l" file there are regular expressions that read in text and return back tokens that match to the expression.  A file being sent through the scanner is turned into a series of tokens which corresponds to tokens used in the parser file.  It was difficult to design the string and comment regular expressions, so I had to look it up in the manual.  Once I found the correct exppression, everything started working well.  
+
+In the "parser.ypp" file there are many non-terminals on the left hand sides with productions to a sentencial form, using both terminals and non-terminals.  This grammar descibed in the parser file is Csimple, which is a sub set of the C programming language.  It was challenging handling the shift reduce errors, but honestly it was great practice for the midterm.  Glad I was able to finish them before wednesday.  I had a few problems for the pointer section, but now it seems like the language is working properly.   

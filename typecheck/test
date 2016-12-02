@@ -1,0 +1,12 @@
+procedure Main() return integer {
+  var x: string[10];
+  var a: char;
+  var y: char;
+  y = x[|x|];
+  return 1;
+}
+
+
+procedure bar() return boolean{
+  return true;
+}

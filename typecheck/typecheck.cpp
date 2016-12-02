@@ -248,7 +248,7 @@ class Typecheck : public Visitor
 
         //if this variable is a duplicate
         if (! m_st->insert(name, s))
-  	     this->t_error(dup_var_name,  p->m_attribute);
+         this->t_error(dup_var_name,  p->m_attribute);
        }
     }
 
@@ -341,9 +341,15 @@ class Typecheck : public Visitor
     {
       Basetype lhs_type = p->m_lhs->m_attribute.m_basetype;
       Basetype expr_type = p->m_expr->m_attribute.m_basetype;
+      bool ptr_set_to_null = false;
 
+      if(lhs_type == bt_intptr || lhs_type == bt_charptr){
+        if(expr_type == bt_ptr){
+          ptr_set_to_null = true;
+        }
+      }
 
-      if(lhs_type != expr_type)
+      if(lhs_type != expr_type && !ptr_set_to_null)
         t_error(incompat_assign, p->m_attribute);
       else{
         //***DO I WANT TO DO THIS??
@@ -494,11 +500,11 @@ class Typecheck : public Visitor
 
     void checkset_absolute_value(Expr* parent, Expr* child)
     {
-      if((child->m_attribute.m_basetype != bt_integer) &&
-        (child->m_attribute.m_basetype != bt_string)){
-          this->t_error(expr_abs_error, parent->m_attribute);
-        }
-      parent->m_attribute.m_basetype = bt_integer;
+      if((child->m_attribute.m_basetype == bt_integer) ||
+      (child->m_attribute.m_basetype == bt_string))
+        parent->m_attribute.m_basetype = bt_integer;
+      else
+        this->t_error(expr_abs_error, parent->m_attribute);
     }
 
     void checkset_addressof(Expr* parent, Lhs* child)
@@ -538,17 +544,12 @@ class Typecheck : public Visitor
 
     void checkset_variable(Variable* p)
     {
-      //checks if declared
-      //Symbol *var_lookup = m_st->lookup(p->m_symname->spelling());
       char *name = strdup(p->m_symname->spelling());
       Symbol *var_sym = new Symbol();
       var_sym = m_st->lookup(name);
 
-      cout<<name<<": "; print_type(var_sym->m_basetype); cout<<endl;
-
       if (var_sym == NULL)
         this->t_error(var_undef, p->m_attribute);
-      //no error
       p->m_attribute.m_basetype = var_sym->m_basetype;
     }
 
@@ -557,15 +558,12 @@ class Typecheck : public Visitor
     //written to pass up the type of the rhs identifier.
     void checkset_ident(Ident* p)
     {
-      Symbol *ident_sym = new Symbol();
       char *name = strdup(p->m_symname->spelling());
+      Symbol *ident_sym = new Symbol();
       ident_sym = m_st->lookup(name);
 
       if(ident_sym == NULL)
         this->t_error(var_undef, p->m_attribute);
-      if(ident_sym->m_basetype == bt_string)
-        this->t_error(expr_type_err, p->m_attribute);
-
       p->m_attribute.m_basetype = ident_sym->m_basetype;
     }
 
@@ -578,24 +576,13 @@ class Typecheck : public Visitor
     }
 
     //used to the procedure to sym table.
-    void decl_proc_symbols(std::list<Proc_ptr> *p){
+    void accept_proc_symbols(std::list<Proc_ptr> *p){
       std:: list<Proc_ptr>::iterator proc;
       for(proc = p->begin(); proc != p->end(); ++proc){
-        //this is pointing to a procedure
         accept_decl((ProcImpl *)*proc);
-        add_proc_symbol((ProcImpl *)*proc);
       }
     }
 
-    void openScope(){
-      //scope++;
-      m_st->open_scope();
-    }
-
-    void close_scope(){
-      //scope--;
-      m_st->close_scope();
-    }
 
 //End Helpers
 
@@ -610,25 +597,18 @@ class Typecheck : public Visitor
     {
       m_st->open_scope();
       global_scope = m_st->get_scope();
-
-      decl_proc_symbols(p->m_proc_list);
-      //children can see the procedures.
+      accept_proc_symbols(p->m_proc_list);
       default_rule(p);
-      //put all procedures into this scope
       m_st->close_scope();
-      //leave as last item
       check_for_one_main(p);
     }
 
     void visitProcImpl(ProcImpl* p)
     {
-      //open scope because of new procedure
+      add_proc_symbol(p);
       m_st->open_scope();
-      //children can see the parameters of this procedure.
       default_rule(p);
-      //keep after default rule
       check_proc(p);
-      //close scope once procedure is finished.
       m_st->close_scope();
     }
 
@@ -640,11 +620,7 @@ class Typecheck : public Visitor
 
     void visitNested_blockImpl(Nested_blockImpl* p)
     {
-      //open scope
       m_st->open_scope();
-      //visit all children in Nested_blockImpl:
-      //decl_list and stat_list
-
       default_rule(p);
       m_st->close_scope();
     }
@@ -652,13 +628,8 @@ class Typecheck : public Visitor
 //needed for first test
     void visitProcedure_blockImpl(Procedure_blockImpl* p)
     {
-        //visit children:
-        //Nested_blockImpl
+        accept_proc_symbols(p->m_proc_list);
         default_rule(p);
-        //children of Procedure_blockImpl:
-        //proc_list, decl_list, and stat_list
-        decl_proc_symbols(p->m_proc_list);
-
     }
 
     void visitDeclImpl(DeclImpl* p)
@@ -676,21 +647,21 @@ class Typecheck : public Visitor
     void visitStringAssignment(StringAssignment *p)
     {
         default_rule(p);
-	
-	int lhs_length = m_st->lookup(static_cast<Variable *>(p->m_lhs)->m_symname->spelling())->m_stringlength;
-	int str_length = string(p->m_stringprimitive->m_string).length() + 1;
-	
-	if( lhs_length <  str_length){
-	  this->t_error(array_index_error,  p->m_attribute);
-	}
+
+        int lhs_length = m_st->lookup(static_cast<Variable *>(p->m_lhs)->m_symname->spelling())->m_stringlength;
+        int str_length = string(p->m_stringprimitive->m_string).length() + 1;
+
+        if( lhs_length <  str_length){
+          this->t_error(array_index_error,  p->m_attribute);
+        }
         check_string_assignment(p);
     }
 
     void visitIdent(Ident* p)
     {
+        default_rule(p);
         checkset_ident(p);
-        //default_rule(p);
-        //need to do a check to pass up identifiers type
+
     }
 
     void visitReturn(Return* p)
@@ -842,7 +813,7 @@ class Typecheck : public Visitor
 
     void visitAbsoluteValue(AbsoluteValue* p)
     {
-        //default_rule(p);
+        default_rule(p);
         checkset_absolute_value(p, p->m_expr);
     }
 

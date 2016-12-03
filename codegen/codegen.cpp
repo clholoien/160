@@ -6,6 +6,7 @@
 #include "primitive.hpp"
 
 
+//This is going to be a hard project
 class Codegen : public Visitor
 {
   private:
@@ -261,9 +262,9 @@ class Codegen : public Visitor
     void visitMinus(Minus* p)
     {
       fprintf(m_outputfile, "popl ");
-      fprintf(m_outputfile, "");
-      fprintf(m_outputfile, "");
-      fprintf(m_outputfile, "");
+      fprintf(m_outputfile, "popl ");
+      fprintf(m_outputfile, "subl ");
+      fprintf(m_outputfile, "pushl ");
     }
 
     void visitPlus(Plus* p)

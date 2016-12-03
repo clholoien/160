@@ -172,6 +172,27 @@ class Codegen : public Visitor
 
     void visitCall(Call* p)
     {
+      fprintf(m_outputfile, "pushl  %ebp \n")        //save base pointer
+      fprintf(m_outputfile, "movl   %esp, %ebp \n"); //set new base pointer
+      fprintf(m_outputfile, "movl   0x0, %eax \n");       
+      fprintf(m_outputfile, "popl   %ebp \n");
+      fprintf(m_outputfile, "retl \n");
+
+      fprintf(m_outputfile, "pushl  %ebp \n"); //save base pointer
+      fprintf(m_outputfile, "movl   %esp, %ebp \n"); //set new base pointer
+      fprintf(m_outputfile, "subl   0x10, %esp \n");//creates room for local variable
+
+      //WILL NEED A METHOD TO SEE HOW MANY PARAMETERS ARE IN METHOD CALL.
+      fprintf(m_outputfile, "pushl  0x8 \n"); //save parameter on stack
+      fprintf(m_outputfile, "pushl  0x6 \n"); //save parameter on stack
+
+      //ADD FUNTIONALITY TO PUT SYMNAME OF PROCEDURE IN WHERE "foo" IS.
+      fprintf(m_outputfile, "call  80483db <foo>"); // CALL function calls parameter on stack
+      fprintf(m_outputfile, "addl  0x8, %esp \n"); //clean the stack
+      fprintf(m_outputfile, "mov  %eax, -0x4(%ebp) \n"); //store the return value in variable a.
+      fprintf(m_outputfile, "mov  $0x0, %eax \n"); 
+      fprintf(m_outputfile, "leave \n");
+      fprintf(m_outputfile, "ret \n");
     }
 
     void visitReturn(Return* p)
@@ -252,31 +273,47 @@ class Codegen : public Visitor
     // Arithmetic and logic operations
     void visitAnd(And* p)
     {
+      fprintf(m_outputfile, "popl %eax \n");   //pop first expr off stack
+      fprintf(m_outputfile, "popl %ebx \n");   //pop second expr off stack
+      fprintf(m_outputfile, "andl %eax %ebx \n"); //do operation
+      fprintf(m_outputfile, "pushl %ebx \n");  //push item back onto the stack
     }
 
     void visitOr(Or* p)
     {
+      fprintf(m_outputfile, "popl %eax \n");   //pop first expr off stack
+      fprintf(m_outputfile, "popl %ebx \n");   //pop second expr off stack
+      fprintf(m_outputfile, "orl %eax %ebx \n"); //do operation
+      fprintf(m_outputfile, "pushl %ebx \n");  //push item back onto the stack
     }
 
-//Arithmetic
     void visitMinus(Minus* p)
     {
-      fprintf(m_outputfile, "popl ");
-      fprintf(m_outputfile, "popl ");
-      fprintf(m_outputfile, "subl ");
-      fprintf(m_outputfile, "pushl ");
+      fprintf(m_outputfile, "popl %eax \n");   //pop first expr off stack
+      fprintf(m_outputfile, "popl %ebx \n");   //pop second expr off stack
+      fprintf(m_outputfile, "subl %eax %ebx \n"); //do operation
+      fprintf(m_outputfile, "pushl %ebx \n");  //push item back onto the stack
     }
-
     void visitPlus(Plus* p)
     {
+	    fprintf(m_outputfile, "popl %eax \n");//pop first expr off stack
+      fprintf(m_outputfile, "popl %ebx \n");//pop second expr off stack
+      fprintf(m_outputfile, "addl %eax %ebx \n"); //do operation
+      fprintf(m_outputfile, "pushl %ebx \n"); //push item back onto the stack
     }
-
     void visitTimes(Times* p)
     {
+      fprintf(m_outputfile, "popl %eax \n");//pop first expr off stack
+      fprintf(m_outputfile, "popl %ebx \n");//pop second expr off stack
+      fprintf(m_outputfile, "multl %eax %ebx \n"); //do operation
+      fprintf(m_outputfile, "pushl %ebx \n"); //push item back onto the stack
     }
-
     void visitDiv(Div* p)
     {
+      fprintf(m_outputfile, "popl %eax \n");//pop first expr off stack
+      fprintf(m_outputfile, "popl %ebx \n");//pop second expr off stack
+      fprintf(m_outputfile, "divl %eax %ebx \n"); //do operation
+      fprintf(m_outputfile, "pushl %ebx \n"); //push item back onto the stack
     }
 
     void visitNot(Not* p)

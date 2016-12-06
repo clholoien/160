@@ -13,6 +13,9 @@ class Codegen : public Visitor
     FILE* m_outputfile;
     SymTab *m_st;
 
+    // Basic size of a character in bytes
+    static const int char_size = 1;
+
     // Basic size of a word (integers and booleans) in bytes
     static const int wordsize = 4;
 
@@ -93,9 +96,9 @@ class Codegen : public Visitor
     //
     //  (1) allocates space for the callee's temporaries on the stack
     //
-    //  (2) saves callee-saved registers (see below) - including the previous activation record pointer (%ebp)
+    //  (2) saves callee-saved registers (see below) - including the previous activation record pointer (%%ebp)
     //
-    //  (3) makes the activation record pointer (frmae pointer - %ebp) point to the start of the temporary region
+    //  (3) makes the activation record pointer (frmae pointer - %%ebp) point to the start of the temporary region
     //
     //  (4) possibly copies the actual arguments into the temporary variables to allow easier access
     //
@@ -103,7 +106,7 @@ class Codegen : public Visitor
     //
     //  (1) pops the callee's activation record (temporay area) off the stack
     //
-    //  (2) restores the callee-saved registers, including the activation record of the caller (%ebp)
+    //  (2) restores the callee-saved registers, including the activation record of the caller (%%ebp)
     //
     //  (3) jumps to the return address (using the x86 "ret" instruction, this automatically pops the
     //      return address off the stack
@@ -115,28 +118,50 @@ class Codegen : public Visitor
     //
     // Contract between caller and callee on x86:
     //    * after call instruction:
-    //           o %eip points at first instruction of function
-    //           o %esp+4 points at first argument
-    //           o %esp points at return address
+    //           o %%eip points at first instruction of function
+    //           o %%esp+4 points at first argument
+    //           o %%esp points at return address
     //    * after ret instruction:
-    //           o %eip contains return address
-    //           o %esp points at arguments pushed by caller
+    //           o %%eip contains return address
+    //           o %%esp points at arguments pushed by caller
     //           o called function may have trashed arguments
-    //           o %eax contains return value (or trash if function is void)
-    //           o %ecx, %edx may be trashed
-    //           o %ebp, %ebx, %esi, %edi must contain contents from time of call
+    //           o %%eax contains return value (or trash if function is void)
+    //           o %%ecx, %%edx may be trashed
+    //           o %%ebp, %%ebx, %%esi, %%edi must contain contents from time of call
     //    * Terminology:
-    //           o %eax, %ecx, %edx are "caller save" registers
-    //           o %ebp, %ebx, %esi, %edi are "callee save" registers
+    //           o %%eax, %%ecx, %%edx are "caller save" registers
+    //           o %%ebp, %%ebx, %%esi, %%edi are "callee save" registers
     ////////////////////////////////////////////////////////////////////////////////
 
 
     void emit_prologue(SymName *name, unsigned int size_locals, unsigned int num_args)
     {
+      //use the name as a label in the output file
+      fprintf(m_outputfile, "%s:\n", strdup(name->spelling())); 
+      //Save base stack pointer on stack.
+      fprintf(m_outputfile, "pushl %%ebp\n");
+      //adjust stack pointer
+      fprintf(m_outputfile, "movl %%esp, %%ebp\n");
+      //allocaated space for local variabls/arguments
+      fprintf(m_outputfile, "subl $%d, %%esp \n", size_locals);
+
+      int arg_offset = 0;
+      //put arguments in a stack formation
+      for(int i = 0; i < num_args; i++){
+        arg_offset = (i+1)*4;
+        fprintf(m_outputfile, "movl %d(%%ebp) %%eax\n", arg_offset + 4 );
+        fprintf(m_outputfile, "movl %%eax -%d(%%ebp)\n", arg_offset);
+      }
     }
 
     void emit_epilogue()
     {
+      //reset stack pointer after function declaration
+      fprintf(m_outputfile, "movl %%ebp, %%esp\n");
+      //pull base stack pointer off the stack
+      fprintf(m_outputfile, "popl %%ebp \n");
+      //finish by return out.
+      fprint(m_outputfile, "ret \n");
     }
 
   // WRITEME: more functions to emit code
@@ -152,245 +177,476 @@ class Codegen : public Visitor
 
     void visitProgramImpl(ProgramImpl* p)
     {
+      p->visit_children(this);
+
     }
 
     void visitProcImpl(ProcImpl* p)
     {
+      p->visit_children(this);
+      
     }
 
     void visitProcedure_blockImpl(Procedure_blockImpl* p)
     {
+      p->visit_children(this);
     }
 
     void visitNested_blockImpl(Nested_blockImpl* p)
     {
+      p->visit_children(this);
     }
 
     void visitAssignment(Assignment* p)
     {
+      //push the value to assign on the stack.
+      p->m_expr->accept(this);
+      p->m_symname->accept(this);
+
+      //find the offset for the variable to assign to.
+      Symbol *var_sym = m_st->lookup(p->m_attribute.m_scope, p->m_symname->spelling());
+      int var_offset = var_sym->get_offset() + 4;
+
+      //pop value to assign to variable off the stack.
+      fprintf(m_outputfile, "popl %%eax \n");
+      //place the value in the locataion of the variable to assign.
+      fprintf(m_outputfile, "movl %%eax, %d(%%ebp)\n", var_offset);
     }
 
     void visitCall(Call* p)
     {
-      fprintf(m_outputfile, "pushl  %ebp \n")        //save base pointer
-      fprintf(m_outputfile, "movl   %esp, %ebp \n"); //set new base pointer
-      fprintf(m_outputfile, "movl   0x0, %eax \n");       
-      fprintf(m_outputfile, "popl   %ebp \n");
+      fprintf(m_outputfile, "pushl  %%ebp \n");        //save base pointer
+      fprintf(m_outputfile, "movl   %%esp, %%ebp \n"); //set new base pointer
+      fprintf(m_outputfile, "movl   0x0, %%eax \n");       
+      fprintf(m_outputfile, "popl   %%ebp \n");
       fprintf(m_outputfile, "retl \n");
 
-      fprintf(m_outputfile, "pushl  %ebp \n"); //save base pointer
-      fprintf(m_outputfile, "movl   %esp, %ebp \n"); //set new base pointer
-      fprintf(m_outputfile, "subl   0x10, %esp \n");//creates room for local variable
+      fprintf(m_outputfile, "pushl  %%ebp \n"); //save base pointer
+      fprintf(m_outputfile, "movl   %%esp, %%ebp \n"); //set new base pointer
+      fprintf(m_outputfile, "subl   0x10, %%esp \n");//creates room for local variable
 
       //WILL NEED A METHOD TO SEE HOW MANY PARAMETERS ARE IN METHOD CALL.
       fprintf(m_outputfile, "pushl  0x8 \n"); //save parameter on stack
       fprintf(m_outputfile, "pushl  0x6 \n"); //save parameter on stack
 
       //ADD FUNTIONALITY TO PUT SYMNAME OF PROCEDURE IN WHERE "foo" IS.
-      fprintf(m_outputfile, "call  80483db <foo>"); // CALL function calls parameter on stack
-      fprintf(m_outputfile, "addl  0x8, %esp \n"); //clean the stack
-      fprintf(m_outputfile, "mov  %eax, -0x4(%ebp) \n"); //store the return value in variable a.
-      fprintf(m_outputfile, "mov  $0x0, %eax \n"); 
+      fprintf(m_outputfile, "call  80483db foo"); // CALL function calls parameter on stack
+      fprintf(m_outputfile, "addl  0x8, %%esp \n"); //clean the stack
+      fprintf(m_outputfile, "mov  %%eax, -0x4(%%ebp) \n"); //store the return value in variable a.
+      fprintf(m_outputfile, "mov  $0x0, %%eax \n"); 
       fprintf(m_outputfile, "leave \n");
       fprintf(m_outputfile, "ret \n");
     }
 
     void visitReturn(Return* p)
     {
+      p->visit_children(this);
+      //pop off return.
+      fprintf(m_outputfile, "popl %%eax\n");
     }
 
     // Control flow
     void visitIfNoElse(IfNoElse* p)
     {
+      p->m_expr->accept(this);
+      int cond = new_label();
+
+      fprintf(m_outputfile, "if_%d: \n", cond); //create if label
+
+      fprintf(m_outputfile, "popl %%eax"); //place boolean value into var a
+      fprintf(m_outputfile, "movl $0 %%ebx \n"); //place zero into var b
+      fprintf(m_outputfile, "cmp %%eax, %%ebx \n"); //compare variable with false
+
+      fprintf(m_outputfile, "je end_%d \n", cond); //if false then jump to end.
+        p->m_nested_block->accept(this);
+      fprintf(m_outputfile, "end_%d: \n", cond); //create end label for if with else statement.
     }
 
     void visitIfWithElse(IfWithElse* p)
     {
+      p->m_expr->accept(this);
+
+      int cond = new_label();
+
+      fprintf(m_outputfile, "if_%d: \n", cond); //create if label
+      fprintf(m_outputfile, "popl %%eax"); //place boolean value into var a
+      fprintf(m_outputfile, "movl $0 %%ebx \n"); //place zero into var b
+      fprintf(m_outputfile, "cmp %%eax, %%ebx \n"); //compare variable with false
+
+      fprintf(m_outputfile, "je else_%d \n", cond); //if false then jump to else.
+
+        p->m_nested_block_1->accept(this);
+      fprintf(m_outputfile, "j end_%d \n", cond); //if true jump to end
+
+      fprintf(m_outputfile, "else_%d: \n", cond); //create else label
+        p->m_nested_block_2->accept(this);
+
+      fprintf(m_outputfile, "end_%d: \n", cond); //create end label for if with else statement.
+      
     }
 
     void visitWhileLoop(WhileLoop* p)
     {
+      p->m_expr->accept(this);
+
+      int loop = new_label();
+
+      fprintf(m_outputfile, "while_%d: \n", loop); //create while loop label
+
+      fprintf(m_outputfile, "popl %%eax"); //pop boolean variable off stack
+      fprintf(m_outputfile, "movl $0 %%ebx \n"); //place zero into variable
+      fprintf(m_outputfile, "cmp %%eax, %%ebx \n"); //compare variable with false
+
+      fprintf(m_outputfile, "je end_%d \n", loop); //if false then end.
+
+        p->m_nested_block->accept(this);
+      fprintf(m_outputfile, "j while_%d \n", loop); //if true, jump to while label
+      fprintf(m_outputfile, "end_%d \n", loop); //create label for when loop is finished.
     }
 
     void visitCodeBlock(CodeBlock *p)
     {
+      p->visit_children(this);
     }
 
     // Variable declarations (no code generation needed)
     void visitDeclImpl(DeclImpl* p)
     {
+      P->visit_children(this);
     }
 
-    void visitTInteger(TInteger* p)
-    {
-    }
-
-    void visitTIntPtr(TIntPtr* p)
-    {
-    }
-
-    void visitTBoolean(TBoolean* p)
-    {
-    }
-
-    void visitTCharacter(TCharacter* p)
-    {
-    }
-
-    void visitTCharPtr(TCharPtr* p)
-    {
-    }
-
-    void visitTString(TString* p)
-    {
-    }
+    void visitTInteger(TInteger* p){}
+    void visitTIntPtr(TIntPtr* p){}
+    void visitTBoolean(TBoolean* p){}
+    void visitTCharacter(TCharacter* p){}
+    void visitTCharPtr(TCharPtr* p){}
+    void visitTString(TString* p){}
 
     // Comparison operations
     void visitCompare(Compare* p)
     {
+       p->visit_children(this);
+
+      int jump = new_label();
+      int end = new_label();
+
+      fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
+      fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
+      fprintf(m_outputfile, "cmpl %%eax %%ebx \n"); //do comparision
+      fprintf(m_outputfile, "je  Label%d \n", jump);   //jump if true
+      fprintf(m_outputfile, "pushl $0\n");   //push 0 onto stack if false
+      fprintf(m_outputfile, "jmp Label%d \n", end); //jump to the end if false.
+      fprintf(m_outputfile, "L%d: \n", jump);   //Create label to jump to if true
+      fprintf(m_outputfile, "pushl $1 \n");   //push 1 onto the stack if true
+      fprintf(m_outputfile, "L%d: \n", end);   //Create label to end 
+
     }
 
     void visitNoteq(Noteq* p)
     {
+       p->visit_children(this);
+
+      int jump = new_label();
+      int end = new_label();
+
+      fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
+      fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
+      fprintf(m_outputfile, "cmpl %%eax %%ebx \n"); //do comparision
+      fprintf(m_outputfile, "jne  Label%d \n", jump);   //jump if true
+      fprintf(m_outputfile, "pushl $0\n");   //push 0 onto stack if false
+      fprintf(m_outputfile, "jmp Label%d \n", end); //jump to the end if false.
+      fprintf(m_outputfile, "L%d: \n", jump);   //Create label to jump to if true
+      fprintf(m_outputfile, "pushl $1 \n");   //push 1 onto the stack if true
+      fprintf(m_outputfile, "L%d: \n", end);   //Create label to end 
+
     }
 
     void visitGt(Gt* p)
     {
+       p->visit_children(this);
+
+      int jump = new_label();
+      int end = new_label();
+
+      fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
+      fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
+      fprintf(m_outputfile, "cmpl %%eax %%ebx \n"); //do comparision
+      fprintf(m_outputfile, "jg  Label%d \n", jump);   //jump if true
+      fprintf(m_outputfile, "pushl $0\n");   //push 0 onto stack if false
+      fprintf(m_outputfile, "jmp Label%d \n", end); //jump to the end if false.
+      fprintf(m_outputfile, "L%d: \n", jump);   //Create label to jump to if true
+      fprintf(m_outputfile, "pushl $1 \n");   //push 1 onto the stack if true
+      fprintf(m_outputfile, "L%d: \n", end);   //Create label to end 
+
     }
 
     void visitGteq(Gteq* p)
     {
+       p->visit_children(this);
+
+      int jump = new_label();
+      int end = new_label();
+
+      fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
+      fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
+      fprintf(m_outputfile, "cmpl %%eax %%ebx \n"); //do comparision
+      fprintf(m_outputfile, "jge  Label%d \n", jump);   //jump if true
+      fprintf(m_outputfile, "pushl $0\n");   //push 0 onto stack if false
+      fprintf(m_outputfile, "jmp Label%d \n", end); //jump to the end if false.
+      fprintf(m_outputfile, "L%d: \n", jump);   //Create label to jump to if true
+      fprintf(m_outputfile, "pushl $1 \n");   //push 1 onto the stack if true
+      fprintf(m_outputfile, "L%d: \n", end);   //Create label to end 
+
     }
 
     void visitLt(Lt* p)
     {
+       p->visit_children(this);
+
+      int jump = new_label();
+      int end = new_label();
+
+      fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
+      fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
+      fprintf(m_outputfile, "cmpl %%eax %%ebx \n"); //do comparision
+      fprintf(m_outputfile, "jl  Label%d \n", jump);   //jump if true
+      fprintf(m_outputfile, "pushl $0\n");   //push 0 onto stack if false
+      fprintf(m_outputfile, "jmp Label%d \n", end); //jump to the end if false.
+      fprintf(m_outputfile, "L%d: \n", jump);   //Create label to jump to if true
+      fprintf(m_outputfile, "pushl $1 \n");   //push 1 onto the stack if true
+      fprintf(m_outputfile, "L%d: \n", end);   //Create label to end 
+
     }
 
     void visitLteq(Lteq* p)
     {
+      p->visit_children(this);
+
+      int jump = new_label();
+      int end = new_label();
+
+      fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
+      fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
+      fprintf(m_outputfile, "cmpl %%eax %%ebx \n"); //do comparision
+      fprintf(m_outputfile, "jle  Label%d \n", jump);   //jump if true
+      fprintf(m_outputfile, "pushl $0\n");   //push 0 onto stack if false
+      fprintf(m_outputfile, "jmp Label%d \n", end); //jump to the end if false.
+      fprintf(m_outputfile, "L%d: \n", jump);   //Create label to jump to if true
+      fprintf(m_outputfile, "pushl $1 \n");   //push 1 onto the stack if true
+      fprintf(m_outputfile, "L%d: \n", end);   //Create label to end 
+
     }
 
     // Arithmetic and logic operations
     void visitAnd(And* p)
     {
-      fprintf(m_outputfile, "popl %eax \n");   //pop first expr off stack
-      fprintf(m_outputfile, "popl %ebx \n");   //pop second expr off stack
-      fprintf(m_outputfile, "andl %eax %ebx \n"); //do operation
-      fprintf(m_outputfile, "pushl %ebx \n");  //push item back onto the stack
+      p->visit_children(this);
+      fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
+      fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
+      fprintf(m_outputfile, "andl %%eax %%ebx \n"); //do operation
+      fprintf(m_outputfile, "pushl %%ebx \n");  //push item back onto the stack
     }
 
     void visitOr(Or* p)
     {
-      fprintf(m_outputfile, "popl %eax \n");   //pop first expr off stack
-      fprintf(m_outputfile, "popl %ebx \n");   //pop second expr off stack
-      fprintf(m_outputfile, "orl %eax %ebx \n"); //do operation
-      fprintf(m_outputfile, "pushl %ebx \n");  //push item back onto the stack
+      p->visit_children(this);
+      fprintf(m_outputfile, "popl   %%eax \n");   //pop first expr off stack
+      fprintf(m_outputfile, "popl   %%ebx \n");   //pop second expr off stack
+      fprintf(m_outputfile, "orl    %%eax %%ebx \n"); //do operation
+      fprintf(m_outputfile, "pushl  %%ebx \n");  //push item back onto the stack
     }
 
     void visitMinus(Minus* p)
     {
-      fprintf(m_outputfile, "popl %eax \n");   //pop first expr off stack
-      fprintf(m_outputfile, "popl %ebx \n");   //pop second expr off stack
-      fprintf(m_outputfile, "subl %eax %ebx \n"); //do operation
-      fprintf(m_outputfile, "pushl %ebx \n");  //push item back onto the stack
+      p->visit_children(this);
+      fprintf(m_outputfile, "popl   %%eax \n");   //pop first expr off stack
+      fprintf(m_outputfile, "popl   %%ebx \n");   //pop second expr off stack
+      fprintf(m_outputfile, "subl   %%eax %%ebx \n"); //do operation
+      fprintf(m_outputfile, "pushl  %%ebx \n");  //push item back onto the stack
     }
     void visitPlus(Plus* p)
     {
-	    fprintf(m_outputfile, "popl %eax \n");//pop first expr off stack
-      fprintf(m_outputfile, "popl %ebx \n");//pop second expr off stack
-      fprintf(m_outputfile, "addl %eax %ebx \n"); //do operation
-      fprintf(m_outputfile, "pushl %ebx \n"); //push item back onto the stack
+      p->visit_children(this);
+	    fprintf(m_outputfile, "popl %%eax \n");//pop first expr off stack
+      fprintf(m_outputfile, "popl   %%ebx \n");//pop second expr off stack
+      fprintf(m_outputfile, "addl   %%eax %%ebx \n"); //do operation
+      fprintf(m_outputfile, "pushl  %%ebx \n"); //push item back onto the stack
     }
     void visitTimes(Times* p)
     {
-      fprintf(m_outputfile, "popl %eax \n");//pop first expr off stack
-      fprintf(m_outputfile, "popl %ebx \n");//pop second expr off stack
-      fprintf(m_outputfile, "multl %eax %ebx \n"); //do operation
-      fprintf(m_outputfile, "pushl %ebx \n"); //push item back onto the stack
+      p->visit_children(this);
+      fprintf(m_outputfile, "popl   %%eax \n");//pop first expr off stack
+      fprintf(m_outputfile, "popl   %%ebx \n");//pop second expr off stack
+      fprintf(m_outputfile, "imul  %%eax %%ebx \n"); //do operation
+      fprintf(m_outputfile, "pushl  %%ebx \n"); //push item back onto the stack
     }
     void visitDiv(Div* p)
     {
-      fprintf(m_outputfile, "popl %eax \n");//pop first expr off stack
-      fprintf(m_outputfile, "popl %ebx \n");//pop second expr off stack
-      fprintf(m_outputfile, "divl %eax %ebx \n"); //do operation
-      fprintf(m_outputfile, "pushl %ebx \n"); //push item back onto the stack
+      p->visit_children(this);
+      fprintf(m_outputfile, "popl   %%eax \n");//pop first expr off stack
+      fprintf(m_outputfile, "popl   %%ebx \n");//pop second expr off stack
+      fprintf(m_outputfile, "idivl   %%eax %%ebx \n"); //do operation
+      fprintf(m_outputfile, "pushl  %%ebx \n"); //push item back onto the stack
     }
 
     void visitNot(Not* p)
     {
+      p->visit_children(this);
+      fprintf(m_outputfile, "popl   %%eax \n");//pop first expr off stack
+      fprintf(m_outputfile, "not   %%eax \n");//do operation
+      fprintf(m_outputfile, "pushl  %%eax \n"); //push item back onto the stack
     }
 
     void visitUminus(Uminus* p)
     {
+      p->visit_children(this);
+      fprintf(m_outputfile, "popl   %%eax \n");//pop first expr off stack
+      fprintf(m_outputfile, "neg   %%eax \n"); //do operation
+      fprintf(m_outputfile, "pushl  %%eax \n"); //push item back onto the stack
     }
 
     // Variable and constant access
     void visitIdent(Ident* p)
     {
+      p->visit_children(this);
+
+       //push the value to assign on the stack.
+      p->m_expr->accept(this);
+      p->m_symname->accept(this);
+
+      //find the offset for the variable to assign to.
+      Symbol *ident_sym = m_st->lookup(p->m_attribute.m_scope, p->m_symname->spelling());
+      int ident_offset = ident_sym->get_offset();
+      int ident_size = ident_sym->get_size();
+
+      //push value of identifier on stack 
+      fprintf(m_outputfile, "pushl -%d(%%ebp) \n", ident_offset + ident_size);
     }
 
     void visitBoolLit(BoolLit* p)
     {
+      //visit primitive node
+      p->visit_children(this);
     }
 
     void visitCharLit(CharLit* p)
     {
+      //visit primitive node
+      p->visit_children(this);
     }
 
     void visitIntLit(IntLit* p)
     {
+      //visit primitive node
+      p->visit_children(this);
     }
 
     void visitNullLit(NullLit* p)
     {
+      //NULL is represented as 0 in x86
+      fprintf(m_outputfile, "pushl $0\n");
     }
 
     void visitArrayAccess(ArrayAccess* p)
     {
+      // Push expr and symname onto stack...
+      p->visit_children(this);
+
+      //find the offset for the variable to assign to.
+      Symbol *array_sym = m_st->lookup(p->m_attribute.m_scope, p->m_symname->spelling());
+      int array_offset = var_sym->get_offset();
+      int array_size = var_sym->get_size();
+
+      // Pop expr off stack...
+      fprintf(m_outputfile, "popl %%eax \n");
+      // Convert index to bytes...
+      fprintf(m_outputfile, "imul $%d, %%eax \n", char_size);
+      // Place base pointer to our other variable to be used for the string assignment.
+      fprintf(m_outputfile, "movl %%ebp, %%ebx \n");
+      // set variable b to be pointing at the 0 cell of the array, with it's current size.
+      fprintf(m_outputfile, "subl $%d, %%ebx \n", array_offset + array_size);
+      //set the pointer to the location where we should index...
+      fprintf(m_outputfile, "addl %%eax, %%ebx \n");
+      //push item that is at this location onto the stack to be used.
+      fprintf(m_outputfile, "push 0(%%ebx) \n");
     }
 
     // LHS
     void visitVariable(Variable* p)
     {
+      p->visit_children(this);
     }
 
     void visitDerefVariable(DerefVariable* p)
     {
+      p->visit_children(this);
     }
 
     void visitArrayElement(ArrayElement* p)
     {
+      p->visit_children(this);
     }
 
     // Special cases
     void visitSymName(SymName* p)
-    {
+    { 
+      p->visit_children(this);
     }
 
     void visitPrimitive(Primitive* p)
     {
+      //push data ont stack to be used later.
+      fprintf(m_outputfile, "pushl $%d \n", p->m_data);
     }
 
     // Strings
     void visitStringAssignment(StringAssignment* p)
     {
-    }
+      //initialize string name and expr.
+      p->visit_children(this);
 
+      //get symbol for the string variable.
+      Symbol *string_sym = m_st->lookup(p->m_lhs->symname->spelling());
+
+      int string_offset = string_sym->get_offset();
+      int string_size = string_sym->get_size();
+
+
+      //put expression into 1st variable
+      fprintf(m_outputfile, "popl %%eax \n", );
+      //set second variable to base pointer
+      fprintf(m_outputfile, "movl %%ebp %%ebx \n");
+      // set variable b to be pointing at the 0 cell of the array, with it's current size.
+      fprintf(m_outputfile, "subl $%d, %%ebx \n", string_offset + string_size);
+      //set the pointer to the location where we should index...
+      fprintf(m_outputfile, "addl %%eax, %%ebx \n");
+      //push item that is at this location onto the stack to be used.
+      fprintf(m_outputfile, "movl %%0(%%ebx) \n");
+
+    }
     void visitStringPrimitive(StringPrimitive* p)
     {
+      //push string onto the stack
+      fprintf(m_outputfile, "pushl $%s \n", p->m_string);
     }
 
     void visitAbsoluteValue(AbsoluteValue* p)
     {
+      p->visit_children(this);
+
     }
 
     // Pointer
     void visitAddressOf(AddressOf* p)
     {
+      p->visit_children(this);
+
     }
 
     void visitDeref(Deref* p)
     {
+      p->visit_children(this);
+
     }
 };
 

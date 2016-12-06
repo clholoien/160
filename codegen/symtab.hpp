@@ -60,9 +60,12 @@ class Symbol
 
     // Valid for all types
     Basetype m_basetype;
+    //only used if symbol is of type string.
+    int m_stringlength;
 
     // These are valid only if they are procedures
-    std::vector<Basetype> m_arg_type;
+    std::vector<Basetype> m_arg_type
+    ;
     Basetype m_return_type;
 
     //WRITEME: add string size information
@@ -72,6 +75,7 @@ class Symbol
         m_offset = -1;
         m_symscope = NULL;
         m_basetype = bt_undef;
+        m_stringlength = -1;
     }
 
     int get_size()
@@ -87,7 +91,8 @@ class Symbol
         case bt_procedure:
             return(0);
         case bt_string:
-            return(1);
+            assert(m_stringlength > 0);
+            return(( m_stringlength * 4 )+ 1);
         case bt_ptr:
             return(4);
         case bt_charptr:

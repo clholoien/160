@@ -177,25 +177,37 @@ class Codegen : public Visitor
 
     void visitProgramImpl(ProgramImpl* p)
     {
+      list<Proc_ptr>:: procIter;
+      char *procName;
+      for(procIter = p->m_proc_list->begin(); procIter != p->proc_list->end(); procIter++){
+        //get the name of the current procedure in the iteration.
+        procName = strdup((Proc*)(*procIter)->m_symname->spelling());
+        //store name of global procedures at the top of the program.
+        fprintf(m_outputfile, ".globl %s\n", procName);
+      }
+      //once all global procedures have been declared, visit all children.
       p->visit_children(this);
-
+      //print additional new line to seperate the globals from the rest of the definitions.
+      fprintf(m_outputfile, "\n");
     }
 
     void visitProcImpl(ProcImpl* p)
     {
+      //used to track how many 
+      int num_params = 0;
+      list<Decl_ptr>::iterator declIter
+
+      for(declIter = p->m_decl_list->begin(); declIter != p->m_decl_list->end(); declIter++)
+        num_params = ((Decl*)(*declIter))->m_symname_list->size() + num_params;
+
+      emit_prologue(p->m_symname, m_st->scopesize(p->m_attribute.m_scope), num_args);
       p->visit_children(this);
-      
+    
+      emit_prologue();
     }
 
-    void visitProcedure_blockImpl(Procedure_blockImpl* p)
-    {
-      p->visit_children(this);
-    }
-
-    void visitNested_blockImpl(Nested_blockImpl* p)
-    {
-      p->visit_children(this);
-    }
+    void visitProcedure_blockImpl(Procedure_blockImpl* p){p->visit_children(this);}
+    void visitNested_blockImpl(Nested_blockImpl* p){p->visit_children(this);}
 
     void visitAssignment(Assignment* p)
     {
@@ -247,8 +259,9 @@ class Codegen : public Visitor
 
     // Control flow
     void visitIfNoElse(IfNoElse* p)
-    {
-      p->m_expr->accept(this);
+    { 
+      //visit children already sccepts all chilodren...
+      p->visit_children(this);
       int cond = new_label();
 
       fprintf(m_outputfile, "if_%d: \n", cond); //create if label
@@ -264,6 +277,8 @@ class Codegen : public Visitor
 
     void visitIfWithElse(IfWithElse* p)
     {
+      //visit children already sccepts all chilodren...
+      p->visit_children(this);
       p->m_expr->accept(this);
 
       int cond = new_label();
@@ -287,6 +302,9 @@ class Codegen : public Visitor
 
     void visitWhileLoop(WhileLoop* p)
     {
+       //visit children already sccepts all chilodren...
+      p->visit_children(this);
+
       p->m_expr->accept(this);
 
       int loop = new_label();
@@ -634,19 +652,31 @@ class Codegen : public Visitor
     {
       p->visit_children(this);
 
-    }
+      if (p->m_attribute.m_basetype == bt_integer){
+        //print the return positive value of integer in codegen.
+        //check if the integer is negative, if so then return the positive version.
 
+      }
+      else{
+        //print size of string.
+        
+      }
+    }
+      
     // Pointer
     void visitAddressOf(AddressOf* p)
     {
       p->visit_children(this);
+      fprintf(m_outputfile, "popl %%eax")
+      fprintf(m_outputfile,"pushl 0(%%eax)");
 
     }
 
     void visitDeref(Deref* p)
     {
       p->visit_children(this);
-
+      fprintf(m_outputfile, "popl %%eax")
+      fprintf(m_outputfile,"pushl 0(%%eax)");
     }
 };
 

@@ -515,7 +515,8 @@ class Codegen : public Visitor
     {
       p->visit_children(this);
       fprintf(m_outputfile, "popl   %%eax \n");//pop first expr off stack
-      fprintf(m_outputfile, "not   %%eax \n");//do operation
+      fprintf(m_outputfile, "notl   %%eax \n");//do operation
+      fprintf(m_outputfile, "addl $2 %%eax") //reset the negative offset.
       fprintf(m_outputfile, "pushl  %%eax \n"); //push item back onto the stack
     }
 

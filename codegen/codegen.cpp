@@ -4,6 +4,9 @@
 #include "ast.hpp"
 #include "symtab.hpp"
 #include "primitive.hpp"
+#include "string"
+
+using namespace std;
 
 
 //This is going to be a hard project
@@ -161,7 +164,7 @@ class Codegen : public Visitor
       //pull base stack pointer off the stack
       fprintf(m_outputfile, "popl %%ebp \n");
       //finish by return out.
-      fprint(m_outputfile, "ret \n");
+      fprintf(m_outputfile, "ret \n");
     }
 
   // WRITEME: more functions to emit code
@@ -177,52 +180,54 @@ class Codegen : public Visitor
 
     void visitProgramImpl(ProgramImpl* p)
     {
-      list<Proc_ptr>:: procIter;
+      list<Proc_ptr>:: iterator procIter;
       char *procName;
-      for(procIter = p->m_proc_list->begin(); procIter != p->proc_list->end(); procIter++){
+
+      for(procIter = p->m_proc_list->begin(); procIter != p->m_proc_list->end(); procIter++){
         //get the name of the current procedure in the iteration.
-        procName = strdup((Proc*)(*procIter)->m_symname->spelling());
+        ProcImpl *proc = (ProcImpl*)(*procIter);
+        procName = strdup(proc->m_symname->spelling());
         //store name of global procedures at the top of the program.
         fprintf(m_outputfile, ".globl %s\n", procName);
       }
-      //once all global procedures have been declared, visit all children.
-      p->visit_children(this);
       //print additional new line to seperate the globals from the rest of the definitions.
       fprintf(m_outputfile, "\n");
+
+      //once all global procedures have been declared, visit all children.
+      p->visit_children(this);
+      
     }
 
     void visitProcImpl(ProcImpl* p)
     {
       //used to track how many 
       int num_params = 0;
-      list<Decl_ptr>::iterator declIter
+      list<Decl_ptr>::iterator declIter;
 
-      for(declIter = p->m_decl_list->begin(); declIter != p->m_decl_list->end(); declIter++)
-        num_params = ((Decl*)(*declIter))->m_symname_list->size() + num_params;
-
-      emit_prologue(p->m_symname, m_st->scopesize(p->m_attribute.m_scope), num_args);
+      for(declIter = p->m_decl_list->begin(); declIter != p->m_decl_list->end(); declIter++){
+        DeclImpl *decl = (DeclImpl*)(*declIter);
+        num_params = (decl)->m_symname_list->size() + num_params;
+      } 
+      emit_prologue(p->m_symname, m_st->scopesize(p->m_attribute.m_scope), num_params);
       p->visit_children(this);
     
-      emit_prologue();
+      emit_epilogue();
     }
 
-    void visitProcedure_blockImpl(Procedure_blockImpl* p){p->visit_children(this);}
-    void visitNested_blockImpl(Nested_blockImpl* p){p->visit_children(this);}
+    void visitProcedure_blockImpl(Procedure_blockImpl* p){
+      p->visit_children(this);
+    }
+    void visitNested_blockImpl(Nested_blockImpl* p){
+      p->visit_children(this);
+    }
 
     void visitAssignment(Assignment* p)
     {
       //push the value to assign on the stack.
       p->m_expr->accept(this);
-      p->m_symname->accept(this);
+      //set value to the lhs.
+      p->m_lhs->accept(this);
 
-      //find the offset for the variable to assign to.
-      Symbol *var_sym = m_st->lookup(p->m_attribute.m_scope, p->m_symname->spelling());
-      int var_offset = var_sym->get_offset() + 4;
-
-      //pop value to assign to variable off the stack.
-      fprintf(m_outputfile, "popl %%eax \n");
-      //place the value in the locataion of the variable to assign.
-      fprintf(m_outputfile, "movl %%eax, %d(%%ebp)\n", var_offset);
     }
 
     void visitCall(Call* p)
@@ -260,12 +265,13 @@ class Codegen : public Visitor
     // Control flow
     void visitIfNoElse(IfNoElse* p)
     { 
+      //place boolean expression onto the stack
+      p->m_expr->accept(this);
+
       //visit children already sccepts all chilodren...
-      p->visit_children(this);
       int cond = new_label();
-
+      
       fprintf(m_outputfile, "if_%d: \n", cond); //create if label
-
       fprintf(m_outputfile, "popl %%eax"); //place boolean value into var a
       fprintf(m_outputfile, "movl $0 %%ebx \n"); //place zero into var b
       fprintf(m_outputfile, "cmp %%eax, %%ebx \n"); //compare variable with false
@@ -277,8 +283,7 @@ class Codegen : public Visitor
 
     void visitIfWithElse(IfWithElse* p)
     {
-      //visit children already sccepts all chilodren...
-      p->visit_children(this);
+      //place boolean expression onto the stack.
       p->m_expr->accept(this);
 
       int cond = new_label();
@@ -302,9 +307,7 @@ class Codegen : public Visitor
 
     void visitWhileLoop(WhileLoop* p)
     {
-       //visit children already sccepts all chilodren...
-      p->visit_children(this);
-
+      //place boolean expression onto the stack.
       p->m_expr->accept(this);
 
       int loop = new_label();
@@ -330,7 +333,8 @@ class Codegen : public Visitor
     // Variable declarations (no code generation needed)
     void visitDeclImpl(DeclImpl* p)
     {
-      P->visit_children(this);
+      p->visit_children(this);
+
     }
 
     void visitTInteger(TInteger* p){}
@@ -528,17 +532,13 @@ class Codegen : public Visitor
     {
       p->visit_children(this);
 
-       //push the value to assign on the stack.
-      p->m_expr->accept(this);
-      p->m_symname->accept(this);
-
       //find the offset for the variable to assign to.
       Symbol *ident_sym = m_st->lookup(p->m_attribute.m_scope, p->m_symname->spelling());
       int ident_offset = ident_sym->get_offset();
-      int ident_size = ident_sym->get_size();
+      //int ident_size = ident_sym->get_size();
 
       //push value of identifier on stack 
-      fprintf(m_outputfile, "pushl -%d(%%ebp) \n", ident_offset + ident_size);
+      fprintf(m_outputfile, "pushl -%d(%%ebp) \n", ident_offset + 4);
     }
 
     void visitBoolLit(BoolLit* p)
@@ -567,14 +567,14 @@ class Codegen : public Visitor
 
     void visitArrayAccess(ArrayAccess* p)
     {
-      // Push expr and symname onto stack...
-      p->visit_children(this);
 
       //find the offset for the variable to assign to.
       Symbol *array_sym = m_st->lookup(p->m_attribute.m_scope, p->m_symname->spelling());
-      int array_offset = var_sym->get_offset();
-      int array_size = var_sym->get_size();
+      int array_offset = array_sym->get_offset();
+      int array_size = array_sym->get_size();
 
+      //puts expression on stack
+      p->m_expr->accept(this);
       // Pop expr off stack...
       fprintf(m_outputfile, "popl %%eax \n");
       // Convert index to bytes...
@@ -592,23 +592,99 @@ class Codegen : public Visitor
     // LHS
     void visitVariable(Variable* p)
     {
-      p->visit_children(this);
+      //  var x, y :integer;
+      //  x = y;
+      Symbol *var_sym = m_st->lookup(p->m_attribute.m_scope, p->m_symname->spelling());
+      int var_offset = var_sym->get_offset();
+      int var_size = var_sym->get_size();
+
+      if(var_sym->m_basetype!= bt_string){
+
+        //variable is not a string.
+        //pop value to assign to variable off the stack.
+        fprintf(m_outputfile, "popl %%eax \n");
+        //place the value in the locataion of the variable to assign.
+        fprintf(m_outputfile, "movl %%eax, -%d(%%ebp)\n", var_offset + var_size);
+
+      }else{
+        //STRING PRIMITIVE NOT WORKING AT ALL
+
+        //set second variable to base pointer
+        fprintf(m_outputfile, "movl %%ebp %%ebx \n");
+        // set variable b to be pointing at the 0 cell of the array, with it's current size.
+        fprintf(m_outputfile, "subl $%d, %%ebx \n", var_offset + var_size);
+
+        //used for a label in control flow.
+        int label = new_label();
+        fprintf(m_outputfile, "string_%d \n", label);
+
+        fprintf(m_outputfile, "addl -$4,  %%ebx\n");
+        //put a character into %eax
+        fprintf(m_outputfile, "popl %%eax \n");
+
+        //see if end of string was reached.
+        fprintf(m_outputfile, "movl $0, %%ecx\n");  
+        fprintf(m_outputfile, "cmp %%ecx, %%eax \n");
+        fprintf(m_outputfile, "je end_%d",label);
+        //else continue pushing string on.
+
+        fprintf(m_outputfile, "movl %%eax -%d(%%ebx) \n", );
+
+
+        //set the pointer to the location where we should index...
+        fprintf(m_outputfile, "addl %%eax, %%ebx \n");
+        //push item that is at this location onto the stack to be used.
+        fprintf(m_outputfile, "movl %%0(%%ebx) \n");
+        fprintf(m_outputfile, "end_%d\n", label);        
+      }
     }
 
     void visitDerefVariable(DerefVariable* p)
-    {
-      p->visit_children(this);
+    { 
+      //  var x: intptr;
+      //  var y : integer;  
+      //  ^x = y
+
+      Symbol *var_sym = m_st->lookup(p->m_attribute.m_scope, p->m_symname->spelling());
+      int var_offset = var_sym->get_offset() + 4;
+
+      //pop value to assign to variable off the stack.
+      fprintf(m_outputfile, "popl %%eax \n");
+
+      //place the value in the locataion of the variable to assign.
+      fprintf(m_outputfile, "movl %%eax, %d(%%ebp)\n", var_offset);
     }
 
     void visitArrayElement(ArrayElement* p)
     {
-      p->visit_children(this);
+      //  var s: string[5];
+      //  s[2] = 'b';
+
+      Symbol *array_sym = m_st->lookup(p->m_attribute.m_scope, p->m_symname->spelling());
+      // FIGURE OUT IF PLUS 4 SHOULD HAPPEN.
+      int array_offset = array_sym->get_offset() + 4;
+
+      //pop value to assign to variable off the stack.
+      fprintf(m_outputfile, "popl %%eax \n");
+
+      //find the index
+      p->m_expr->accept(this);
+      fprintf(m_outputfile, "popl %%ebx \n");
+      //put index into byte form.
+      fprintf(m_outputfile, "imul $4 %%ebx \n");
+
+      //get location where string starts in memory.
+      fprintf(m_outputfile, "movl %%ebp %%ecx \n");
+      fprintf(m_outputfile, "subl $%d %%ecx \n", array_offset);
+      //add
+      fprintf(m_outputfile, "subl %%ecx %%ebx \n");
+      //place the value in the locataion of the variable to assign.
+      fprintf(m_outputfile, "movl %%eax, $0(%%ebx)\n");
     }
 
     // Special cases
     void visitSymName(SymName* p)
     { 
-      p->visit_children(this);
     }
 
     void visitPrimitive(Primitive* p)
@@ -620,32 +696,23 @@ class Codegen : public Visitor
     // Strings
     void visitStringAssignment(StringAssignment* p)
     {
-      //initialize string name and expr.
-      p->visit_children(this);
+      //place string onto the stack.
+      p->m_stringprimitive->accept(this);
 
-      //get symbol for the string variable.
-      Symbol *string_sym = m_st->lookup(p->m_lhs->symname->spelling());
-
-      int string_offset = string_sym->get_offset();
-      int string_size = string_sym->get_size();
-
-
-      //put expression into 1st variable
-      fprintf(m_outputfile, "popl %%eax \n", );
-      //set second variable to base pointer
-      fprintf(m_outputfile, "movl %%ebp %%ebx \n");
-      // set variable b to be pointing at the 0 cell of the array, with it's current size.
-      fprintf(m_outputfile, "subl $%d, %%ebx \n", string_offset + string_size);
-      //set the pointer to the location where we should index...
-      fprintf(m_outputfile, "addl %%eax, %%ebx \n");
-      //push item that is at this location onto the stack to be used.
-      fprintf(m_outputfile, "movl %%0(%%ebx) \n");
+      p->m_lhs->accept(this);
 
     }
     void visitStringPrimitive(StringPrimitive* p)
     {
       //push string onto the stack
-      fprintf(m_outputfile, "pushl $%s \n", p->m_string);
+      string input_string = "";
+      string cur_char = "";
+      fprintf(m_outputfile, "pushl $0 \n");
+
+      //push string prim onto stack in reverse order.
+      for(int i = 0; i >= strlen(p->m_string); i++){
+        fprintf(m_outputfile, "pushl  %c \n", p->m_string[strlen(p->m_string)- 1 - i ]);
+      }
     }
 
     void visitAbsoluteValue(AbsoluteValue* p)
@@ -666,8 +733,7 @@ class Codegen : public Visitor
     // Pointer
     void visitAddressOf(AddressOf* p)
     {
-      p->visit_children(this);
-      fprintf(m_outputfile, "popl %%eax")
+      fprintf(m_outputfile, "popl %%eax");
       fprintf(m_outputfile,"pushl 0(%%eax)");
 
     }
@@ -675,7 +741,7 @@ class Codegen : public Visitor
     void visitDeref(Deref* p)
     {
       p->visit_children(this);
-      fprintf(m_outputfile, "popl %%eax")
+      fprintf(m_outputfile, "popl %%eax");
       fprintf(m_outputfile,"pushl 0(%%eax)");
     }
 };

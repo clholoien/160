@@ -1,8 +1,8 @@
 #include <stdio.h>
 
-  void Main();  // inform the compiler that Main is an external function
+  int Main();  // inform the compiler that Main is an external function
 
   int main(int argc, char **argv) {
-      Main();
+      printf("Main returned: %d\n", Main());
       return 0;
   }

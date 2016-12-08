@@ -719,7 +719,7 @@ class Codegen : public Visitor
         int label = new_label();
         fprintf(m_outputfile, "popl %%eax\n");
         fprintf(m_outputfile, "movl $0, %%ebx\n");
-	      fprintf(m_outputfile, "cmpl %%ebx, %%eax \n"); //do comparision
+	fprintf(m_outputfile, "cmpl %%ebx, %%eax \n"); //do comparision
         fprintf(m_outputfile, "jl  abs%d \n", label);   //jump if true
         fprintf(m_outputfile, "imul -$1, %%eax \n");
         fprintf(m_outputfile, "abs%d:\n", label);
@@ -734,22 +734,19 @@ class Codegen : public Visitor
     // Pointer
     void visitAddressOf(AddressOf* p)
     {
-      if(p->m_attribute.m_basetype == bt_integer){
-	     //Symbol *var_sym = lookup(p->(Variable*)(m_lhs)->;
-	
-      	fprintf(m_outputfile, "popl %%eax\n");
-      	fprintf(m_outputfile,"pushl 0(%%eax)\n");
-      }else{
-      	 fprintf(m_outputfile, "");
-      }
-
+      Variable *v = dynamic_cast<Variable*>(p->m_lhs);
+      Symbol *var_sym = m_st->lookup(v->m_attribute.m_scope , v->m_symname->spelling());
+   
+      fprintf(m_outputfile,"leal -%d(ebpx), %%eax \n", var_sym->get_offset() + wordsize);
+      fprintf(m_outputfile, "pushl %%eax\n");
+     
     }
 
     void visitDeref(Deref* p)
     {
       p->m_expr->accept(this);
       fprintf(m_outputfile, "popl %%eax\n");
-       fprintf(m_outputfile, "movl %%eax, (%%ebx)\n");
+       fprintf(m_outputfile, "movl (%%eax), %%ebx\n");
       fprintf(m_outputfile,"pushl %%ebx\n");
     }
 };

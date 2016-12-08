@@ -153,8 +153,8 @@ class Codegen : public Visitor
       //put arguments in a stack formation
       for(int i = 0; i < num_args; i++){
         arg_offset = (i+1)*4;
-        fprintf(m_outputfile, "movl %d(%%ebp) %%eax\n", arg_offset + 4 );
-        fprintf(m_outputfile, "movl %%eax -%d(%%ebp)\n", arg_offset);
+        fprintf(m_outputfile, "movl %d(%%ebp), %%eax\n", arg_offset + 4 );
+        fprintf(m_outputfile, "movl %%eax, -%d(%%ebp)\n", arg_offset);
       }
     }
 
@@ -233,27 +233,19 @@ class Codegen : public Visitor
 
     void visitCall(Call* p)
     {
-      fprintf(m_outputfile, "pushl  %%ebp \n");        //save base pointer
-      fprintf(m_outputfile, "movl   %%esp, %%ebp \n"); //set new base pointer
-      fprintf(m_outputfile, "movl   0x0, %%eax \n");       
-      fprintf(m_outputfile, "popl   %%ebp \n");
-      fprintf(m_outputfile, "retl \n");
-
-      fprintf(m_outputfile, "pushl  %%ebp \n"); //save base pointer
-      fprintf(m_outputfile, "movl   %%esp, %%ebp \n"); //set new base pointer
-      fprintf(m_outputfile, "subl   0x10, %%esp \n");//creates room for local variable
-
-      //WILL NEED A METHOD TO SEE HOW MANY PARAMETERS ARE IN METHOD CALL.
-      fprintf(m_outputfile, "pushl  0x8 \n"); //save parameter on stack
-      fprintf(m_outputfile, "pushl  0x6 \n"); //save parameter on stack
-
-      //ADD FUNTIONALITY TO PUT SYMNAME OF PROCEDURE IN WHERE "foo" IS.
-      fprintf(m_outputfile, "call  80483db foo"); // CALL function calls parameter on stack
-      fprintf(m_outputfile, "addl  0x8, %%esp \n"); //clean the stack
-      fprintf(m_outputfile, "mov  %%eax, -0x4(%%ebp) \n"); //store the return value in variable a.
-      fprintf(m_outputfile, "mov  $0x0, %%eax \n"); 
-      fprintf(m_outputfile, "leave \n");
-      fprintf(m_outputfile, "ret \n");
+      list<Expr_ptr>::iterator exprIter;
+      
+      int num_exprs = p->m_expr_list->size() * 4;
+      
+      for(exprIter = p->m_expr_list->begin(); exprIter != p->m_expr_list->end(); exprIter++){
+        (*exprIter)->accept(this);
+      } 
+      fprintf(m_outputfile, "call %s\n", p->m_symname->spelling());
+      
+      // fprintf(m_outputfile, "addl $%d, %%esp\n", num_exprs);
+      
+      fprintf(m_outputfile, "push %%eax\n");
+      p->m_lhs->accept(this);
     }
 
     void visitReturn(Return* p)
@@ -273,8 +265,8 @@ class Codegen : public Visitor
       int cond = new_label();
       
       fprintf(m_outputfile, "if_%d: \n", cond); //create if label
-      fprintf(m_outputfile, "popl %%eax"); //place boolean value into var a
-      fprintf(m_outputfile, "movl $0 %%ebx \n"); //place zero into var b
+      fprintf(m_outputfile, "popl %%eax\n"); //place boolean value into var a
+      fprintf(m_outputfile, "movl $0, %%ebx \n"); //place zero into var b
       fprintf(m_outputfile, "cmp %%eax, %%ebx \n"); //compare variable with false
 
       fprintf(m_outputfile, "je end_%d \n", cond); //if false then jump to end.
@@ -290,8 +282,8 @@ class Codegen : public Visitor
       int cond = new_label();
 
       fprintf(m_outputfile, "if_%d: \n", cond); //create if label
-      fprintf(m_outputfile, "popl %%eax"); //place boolean value into var a
-      fprintf(m_outputfile, "movl $0 %%ebx \n"); //place zero into var b
+      fprintf(m_outputfile, "popl %%eax\n"); //place boolean value into var a
+      fprintf(m_outputfile, "movl $0, %%ebx \n"); //place zero into var b
       fprintf(m_outputfile, "cmp %%eax, %%ebx \n"); //compare variable with false
 
       fprintf(m_outputfile, "je else_%d \n", cond); //if false then jump to else.
@@ -316,7 +308,7 @@ class Codegen : public Visitor
       fprintf(m_outputfile, "while_%d: \n", loop); //create while loop label
 
       fprintf(m_outputfile, "popl %%eax"); //pop boolean variable off stack
-      fprintf(m_outputfile, "movl $0 %%ebx \n"); //place zero into variable
+      fprintf(m_outputfile, "movl $0, %%ebx \n"); //place zero into variable
       fprintf(m_outputfile, "cmp %%eax, %%ebx \n"); //compare variable with false
 
       fprintf(m_outputfile, "je end_%d \n", loop); //if false then end.
@@ -355,13 +347,13 @@ class Codegen : public Visitor
 
       fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
       fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
-      fprintf(m_outputfile, "cmpl %%eax %%ebx \n"); //do comparision
+      fprintf(m_outputfile, "cmpl %%eax, %%ebx \n"); //do comparision
       fprintf(m_outputfile, "je  Label%d \n", jump);   //jump if true
       fprintf(m_outputfile, "pushl $0\n");   //push 0 onto stack if false
       fprintf(m_outputfile, "jmp Label%d \n", end); //jump to the end if false.
-      fprintf(m_outputfile, "L%d: \n", jump);   //Create label to jump to if true
+      fprintf(m_outputfile, "Label%d: \n", jump);   //Create label to jump to if true
       fprintf(m_outputfile, "pushl $1 \n");   //push 1 onto the stack if true
-      fprintf(m_outputfile, "L%d: \n", end);   //Create label to end 
+      fprintf(m_outputfile, "Label%d: \n", end);   //Create label to end 
 
     }
 
@@ -374,13 +366,13 @@ class Codegen : public Visitor
 
       fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
       fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
-      fprintf(m_outputfile, "cmpl %%eax %%ebx \n"); //do comparision
+      fprintf(m_outputfile, "cmpl %%eax, %%ebx \n"); //do comparision
       fprintf(m_outputfile, "jne  Label%d \n", jump);   //jump if true
       fprintf(m_outputfile, "pushl $0\n");   //push 0 onto stack if false
       fprintf(m_outputfile, "jmp Label%d \n", end); //jump to the end if false.
-      fprintf(m_outputfile, "L%d: \n", jump);   //Create label to jump to if true
+      fprintf(m_outputfile, "Label%d: \n", jump);   //Create label to jump to if true
       fprintf(m_outputfile, "pushl $1 \n");   //push 1 onto the stack if true
-      fprintf(m_outputfile, "L%d: \n", end);   //Create label to end 
+      fprintf(m_outputfile, "Label%d: \n", end);   //Create label to end 
 
     }
 
@@ -393,13 +385,13 @@ class Codegen : public Visitor
 
       fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
       fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
-      fprintf(m_outputfile, "cmpl %%eax %%ebx \n"); //do comparision
+      fprintf(m_outputfile, "cmpl %%eax, %%ebx \n"); //do comparision
       fprintf(m_outputfile, "jg  Label%d \n", jump);   //jump if true
       fprintf(m_outputfile, "pushl $0\n");   //push 0 onto stack if false
       fprintf(m_outputfile, "jmp Label%d \n", end); //jump to the end if false.
-      fprintf(m_outputfile, "L%d: \n", jump);   //Create label to jump to if true
+      fprintf(m_outputfile, "Label%d: \n", jump);   //Create label to jump to if true
       fprintf(m_outputfile, "pushl $1 \n");   //push 1 onto the stack if true
-      fprintf(m_outputfile, "L%d: \n", end);   //Create label to end 
+      fprintf(m_outputfile, "Label%d: \n", end);   //Create label to end 
 
     }
 
@@ -412,13 +404,13 @@ class Codegen : public Visitor
 
       fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
       fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
-      fprintf(m_outputfile, "cmpl %%eax %%ebx \n"); //do comparision
+      fprintf(m_outputfile, "cmpl %%eax, %%ebx \n"); //do comparision
       fprintf(m_outputfile, "jge  Label%d \n", jump);   //jump if true
       fprintf(m_outputfile, "pushl $0\n");   //push 0 onto stack if false
       fprintf(m_outputfile, "jmp Label%d \n", end); //jump to the end if false.
-      fprintf(m_outputfile, "L%d: \n", jump);   //Create label to jump to if true
+      fprintf(m_outputfile, "Label%d: \n", jump);   //Create label to jump to if true
       fprintf(m_outputfile, "pushl $1 \n");   //push 1 onto the stack if true
-      fprintf(m_outputfile, "L%d: \n", end);   //Create label to end 
+      fprintf(m_outputfile, "Label%d: \n", end);   //Create label to end 
 
     }
 
@@ -431,13 +423,13 @@ class Codegen : public Visitor
 
       fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
       fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
-      fprintf(m_outputfile, "cmpl %%eax %%ebx \n"); //do comparision
+      fprintf(m_outputfile, "cmpl %%eax, %%ebx \n"); //do comparision
       fprintf(m_outputfile, "jl  Label%d \n", jump);   //jump if true
       fprintf(m_outputfile, "pushl $0\n");   //push 0 onto stack if false
       fprintf(m_outputfile, "jmp Label%d \n", end); //jump to the end if false.
-      fprintf(m_outputfile, "L%d: \n", jump);   //Create label to jump to if true
+      fprintf(m_outputfile, "Label%d: \n", jump);   //Create label to jump to if true
       fprintf(m_outputfile, "pushl $1 \n");   //push 1 onto the stack if true
-      fprintf(m_outputfile, "L%d: \n", end);   //Create label to end 
+      fprintf(m_outputfile, "Label%d: \n", end);   //Create label to end 
 
     }
 
@@ -450,13 +442,13 @@ class Codegen : public Visitor
 
       fprintf(m_outputfile, "popl %%eax \n");   //pop first expr off stack
       fprintf(m_outputfile, "popl %%ebx \n");   //pop second expr off stack
-      fprintf(m_outputfile, "cmpl %%eax %%ebx \n"); //do comparision
+      fprintf(m_outputfile, "cmpl %%eax, %%ebx \n"); //do comparision
       fprintf(m_outputfile, "jle  Label%d \n", jump);   //jump if true
       fprintf(m_outputfile, "pushl $0\n");   //push 0 onto stack if false
       fprintf(m_outputfile, "jmp Label%d \n", end); //jump to the end if false.
-      fprintf(m_outputfile, "L%d: \n", jump);   //Create label to jump to if true
+      fprintf(m_outputfile, "Label%d: \n", jump);   //Create label to jump to if true
       fprintf(m_outputfile, "pushl $1 \n");   //push 1 onto the stack if true
-      fprintf(m_outputfile, "L%d: \n", end);   //Create label to end 
+      fprintf(m_outputfile, "Label%d: \n", end);   //Create label to end 
 
     }
 
@@ -475,7 +467,7 @@ class Codegen : public Visitor
       p->visit_children(this);
       fprintf(m_outputfile, "popl   %%eax \n");   //pop first expr off stack
       fprintf(m_outputfile, "popl   %%ebx \n");   //pop second expr off stack
-      fprintf(m_outputfile, "orl    %%eax %%ebx \n"); //do operation
+      fprintf(m_outputfile, "orl    %%eax, %%ebx \n"); //do operation
       fprintf(m_outputfile, "pushl  %%ebx \n");  //push item back onto the stack
     }
 
@@ -484,7 +476,7 @@ class Codegen : public Visitor
       p->visit_children(this);
       fprintf(m_outputfile, "popl   %%eax \n");   //pop first expr off stack
       fprintf(m_outputfile, "popl   %%ebx \n");   //pop second expr off stack
-      fprintf(m_outputfile, "subl   %%eax %%ebx \n"); //do operation
+      fprintf(m_outputfile, "subl   %%eax, %%ebx \n"); //do operation
       fprintf(m_outputfile, "pushl  %%ebx \n");  //push item back onto the stack
     }
     void visitPlus(Plus* p)
@@ -492,7 +484,7 @@ class Codegen : public Visitor
       p->visit_children(this);
 	    fprintf(m_outputfile, "popl %%eax \n");//pop first expr off stack
       fprintf(m_outputfile, "popl   %%ebx \n");//pop second expr off stack
-      fprintf(m_outputfile, "addl   %%eax %%ebx \n"); //do operation
+      fprintf(m_outputfile, "addl   %%eax, %%ebx \n"); //do operation
       fprintf(m_outputfile, "pushl  %%ebx \n"); //push item back onto the stack
     }
     void visitTimes(Times* p)
@@ -508,7 +500,7 @@ class Codegen : public Visitor
       p->visit_children(this);
       fprintf(m_outputfile, "popl   %%eax \n");//pop first expr off stack
       fprintf(m_outputfile, "popl   %%ebx \n");//pop second expr off stack
-      fprintf(m_outputfile, "idivl   %%eax %%ebx \n"); //do operation
+      fprintf(m_outputfile, "idivl   %%eax, %%ebx \n"); //do operation
       fprintf(m_outputfile, "pushl  %%ebx \n"); //push item back onto the stack
     }
 
@@ -517,7 +509,7 @@ class Codegen : public Visitor
       p->visit_children(this);
       fprintf(m_outputfile, "popl   %%eax \n");//pop first expr off stack
       fprintf(m_outputfile, "notl   %%eax \n");//do operation
-      fprintf(m_outputfile, "addl $2 %%eax"); //reset the negative offset.
+      fprintf(m_outputfile, "addl $2 %%eax\n"); //reset the negative offset.
       fprintf(m_outputfile, "pushl  %%eax \n"); //push item back onto the stack
     }
 
@@ -612,7 +604,7 @@ class Codegen : public Visitor
         //STRING PRIMITIVE NOT WORKING AT ALL
 
         //set second variable to base pointer
-        fprintf(m_outputfile, "movl %%ebp %%ebx \n");
+        fprintf(m_outputfile, "movl %%ebp, %%ebx \n");
         // set variable b to be pointing at the 0 cell of the array, with it's current size.
         fprintf(m_outputfile, "subl $%d, %%ebx \n", var_offset + var_size);
 
@@ -676,8 +668,8 @@ class Codegen : public Visitor
       fprintf(m_outputfile, "imul $4 %%ebx \n");
 
       //get location where string starts in memory.
-      fprintf(m_outputfile, "movl %%ebp %%ecx \n");
-      fprintf(m_outputfile, "subl $%d %%ecx \n", array_offset);
+      fprintf(m_outputfile, "movl %%ebp, %%ecx \n");
+      fprintf(m_outputfile, "subl $%d, %%ecx \n", array_offset);
       //add
       fprintf(m_outputfile, "subl %%ecx %%ebx \n");
       //place the value in the locataion of the variable to assign.
@@ -735,16 +727,22 @@ class Codegen : public Visitor
     // Pointer
     void visitAddressOf(AddressOf* p)
     {
-      fprintf(m_outputfile, "popl %%eax");
-      fprintf(m_outputfile,"pushl 0(%%eax)");
+      if(p->m_attribute.m_basetype == bt_integer){
+	Symbol *var_sym = lookup(p->(Variable*)(m_lhs)->;
+	
+	fprintf(m_outputfile, "popl %%eax\n");
+	fprintf(m_outputfile,"pushl 0(%%eax)\n");
+      }else{
+	fprintf(m_outputfile, ""
+      }
 
     }
 
     void visitDeref(Deref* p)
     {
-      p->visit_children(this);
-      fprintf(m_outputfile, "popl %%eax");
-      fprintf(m_outputfile,"pushl 0(%%eax)");
+      p->m_expr->accept(this);
+      fprintf(m_outputfile, "popl %%eax\n");
+      fprintf(m_outputfile,"pushl 0(%%eax)\n");
     }
 };
 

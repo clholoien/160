@@ -1,5 +1,11 @@
 procedure Main() return integer{
-	var x: integer;
-	x = 5; 
+
+	var y:intptr;
+	var a,x: integer;
+	a=1;
+	y = &a;
+	x =0;
+	^y = x;
+	
 	return x;
 }

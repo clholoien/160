@@ -1,3 +1,5 @@
 procedure Main() return integer{
-	return 0;
+	var x: integer;
+	x = 5; 
+	return x;
 }

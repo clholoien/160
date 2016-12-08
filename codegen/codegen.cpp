@@ -1,5 +1,6 @@
 #include <cassert>
 #include <typeinfo>
+#include <string.h>
 
 #include "ast.hpp"
 #include "symtab.hpp"
@@ -516,7 +517,7 @@ class Codegen : public Visitor
       p->visit_children(this);
       fprintf(m_outputfile, "popl   %%eax \n");//pop first expr off stack
       fprintf(m_outputfile, "notl   %%eax \n");//do operation
-      fprintf(m_outputfile, "addl $2 %%eax") //reset the negative offset.
+      fprintf(m_outputfile, "addl $2 %%eax"); //reset the negative offset.
       fprintf(m_outputfile, "pushl  %%eax \n"); //push item back onto the stack
     }
 
@@ -629,7 +630,7 @@ class Codegen : public Visitor
         fprintf(m_outputfile, "je end_%d",label);
         //else continue pushing string on.
 
-        fprintf(m_outputfile, "movl %%eax -%d(%%ebx) \n", );
+        fprintf(m_outputfile, "movl %%eax, -%d(%%ebx) \n", var_offset);
 
 
         //set the pointer to the location where we should index...
@@ -723,7 +724,7 @@ class Codegen : public Visitor
       if (p->m_attribute.m_basetype == bt_integer){
         //print the return positive value of integer in codegen.
         //check if the integer is negative, if so then return the positive version.
-
+	
       }
       else{
         //print size of string.

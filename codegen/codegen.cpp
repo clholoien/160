@@ -146,7 +146,7 @@ class Codegen : public Visitor
       fprintf(m_outputfile, "pushl %%ebp\n");
       //adjust stack pointer
       fprintf(m_outputfile, "movl %%esp, %%ebp\n");
-      //allocaated space for local variabls/arguments
+      //allocated space for local variabls/arguments
       fprintf(m_outputfile, "subl $%d, %%esp \n", size_locals);
 
       int arg_offset = 0;
@@ -572,7 +572,7 @@ class Codegen : public Visitor
       // Pop expr off stack...
       fprintf(m_outputfile, "popl %%eax \n");
       // Convert index to bytes...
-      fprintf(m_outputfile, "imul $%d, %%eax \n", char_size);
+      fprintf(m_outputfile, "imul $%d, %%eax \n", wordsize);
       // Place base pointer to our other variable to be used for the string assignment.
       fprintf(m_outputfile, "movl %%ebp, %%ebx \n");
       // set variable b to be pointing at the 0 cell of the array, with it's current size.
@@ -716,7 +716,14 @@ class Codegen : public Visitor
       if (p->m_attribute.m_basetype == bt_integer){
         //print the return positive value of integer in codegen.
         //check if the integer is negative, if so then return the positive version.
-	
+        int label = new_label();
+        fprintf(m_outputfile, "popl %%eax\n");
+        fprintf(m_outputfile, "movl $0, %%ebx\n");
+	      fprintf(m_outputfile, "cmpl %%ebx, %%eax \n"); //do comparision
+        fprintf(m_outputfile, "jl  abs%d \n", label);   //jump if true
+        fprintf(m_outputfile, "imul -$1, %%eax \n");
+        fprintf(m_outputfile, "abs%d:\n", label);
+        fprintf(m_outputfile, "push %%eax \n");
       }
       else{
         //print size of string.
@@ -728,12 +735,12 @@ class Codegen : public Visitor
     void visitAddressOf(AddressOf* p)
     {
       if(p->m_attribute.m_basetype == bt_integer){
-	Symbol *var_sym = lookup(p->(Variable*)(m_lhs)->;
+	     //Symbol *var_sym = lookup(p->(Variable*)(m_lhs)->;
 	
-	fprintf(m_outputfile, "popl %%eax\n");
-	fprintf(m_outputfile,"pushl 0(%%eax)\n");
+      	fprintf(m_outputfile, "popl %%eax\n");
+      	fprintf(m_outputfile,"pushl 0(%%eax)\n");
       }else{
-	fprintf(m_outputfile, ""
+      	 fprintf(m_outputfile, "");
       }
 
     }
@@ -742,7 +749,8 @@ class Codegen : public Visitor
     {
       p->m_expr->accept(this);
       fprintf(m_outputfile, "popl %%eax\n");
-      fprintf(m_outputfile,"pushl 0(%%eax)\n");
+       fprintf(m_outputfile, "movl %%eax, (%%ebx)\n");
+      fprintf(m_outputfile,"pushl %%ebx\n");
     }
 };
 

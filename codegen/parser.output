@@ -1,4 +1,4 @@
-Terminals unused in grammar
+Terminals which are not used
 
    T_mod
 
@@ -10,7 +10,7 @@ Grammar
     1 Main: Procedure
 
     2 Procedure: T_proc T_identifier T_openParen ParamList T_closeParen T_return Type T_openCurly BodyProc T_closeCurly Procedure
-    3          | %empty
+    3          | /* empty */
 
     4 Type: T_bool_type
     5     | T_int_type
@@ -20,29 +20,29 @@ Grammar
     9     | T_string_type T_openBracket Num T_closeBracket
 
    10 ParamList: T_identifier ParamListSameType T_col Type ParamListNewType
-   11          | %empty
+   11          | /* empty */
 
    12 ParamListSameType: T_comma T_identifier ParamListSameType
-   13                  | %empty
+   13                  | /* empty */
 
    14 ParamListNewType: T_semiCol ParamList
    15                 | ParamList
 
    16 Params: Expr ParamsMore
-   17       | %empty
+   17       | /* empty */
 
    18 ParamsMore: T_comma Expr ParamsMore
-   19           | %empty
+   19           | /* empty */
 
    20 BodyProc: Procedure BodyVar BodyState Return
 
    21 Return: T_return Expr T_semiCol
 
    22 BodyVar: T_var T_identifier BodyVarSameType T_col Type T_semiCol BodyVar
-   23        | %empty
+   23        | /* empty */
 
    24 BodyVarSameType: T_comma T_identifier BodyVarSameType
-   25                | %empty
+   25                | /* empty */
 
    26 BodyState: Lhs T_assign Expr T_semiCol BodyState
    27          | Lhs T_assign T_string T_semiCol BodyState
@@ -51,7 +51,7 @@ Grammar
    30          | T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly T_else T_openCurly BodyVar BodyState T_closeCurly BodyState
    31          | T_while T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly BodyState
    32          | Lhs T_assign T_identifier T_openParen Params T_closeParen T_semiCol BodyState
-   33          | %empty
+   33          | /* empty */
 
    34 Lhs: T_identifier
    35    | T_identifier T_openBracket Expr T_closeBracket
@@ -104,11 +104,11 @@ T_less (264) 38
 T_lessOrEq (265) 39
 T_great (266) 40
 T_greatOrEq (267) 41
-T_plus (268) 48 53
-T_minus (269) 49 52
-T_times (270) 46
+T_minus (268) 49 52
+T_plus (269) 48 53
+T_mod (270)
 T_divide (271) 47
-T_mod (272)
+T_times (272) 46
 T_not (273) 51
 T_deRef (274) 36 55
 T_addr (275) 54
@@ -186,7 +186,7 @@ Num (68)
     on left: 63 64 65 66, on right: 9 58
 
 
-State 0
+state 0
 
     0 $accept: . Main $end
 
@@ -198,42 +198,42 @@ State 0
     Procedure  go to state 3
 
 
-State 1
+state 1
 
     2 Procedure: T_proc . T_identifier T_openParen ParamList T_closeParen T_return Type T_openCurly BodyProc T_closeCurly Procedure
 
     T_identifier  shift, and go to state 4
 
 
-State 2
+state 2
 
     0 $accept: Main . $end
 
     $end  shift, and go to state 5
 
 
-State 3
+state 3
 
     1 Main: Procedure .
 
     $default  reduce using rule 1 (Main)
 
 
-State 4
+state 4
 
     2 Procedure: T_proc T_identifier . T_openParen ParamList T_closeParen T_return Type T_openCurly BodyProc T_closeCurly Procedure
 
     T_openParen  shift, and go to state 6
 
 
-State 5
+state 5
 
     0 $accept: Main $end .
 
     $default  accept
 
 
-State 6
+state 6
 
     2 Procedure: T_proc T_identifier T_openParen . ParamList T_closeParen T_return Type T_openCurly BodyProc T_closeCurly Procedure
 
@@ -244,7 +244,7 @@ State 6
     ParamList  go to state 8
 
 
-State 7
+state 7
 
    10 ParamList: T_identifier . ParamListSameType T_col Type ParamListNewType
 
@@ -255,35 +255,35 @@ State 7
     ParamListSameType  go to state 10
 
 
-State 8
+state 8
 
     2 Procedure: T_proc T_identifier T_openParen ParamList . T_closeParen T_return Type T_openCurly BodyProc T_closeCurly Procedure
 
     T_closeParen  shift, and go to state 11
 
 
-State 9
+state 9
 
    12 ParamListSameType: T_comma . T_identifier ParamListSameType
 
     T_identifier  shift, and go to state 12
 
 
-State 10
+state 10
 
    10 ParamList: T_identifier ParamListSameType . T_col Type ParamListNewType
 
     T_col  shift, and go to state 13
 
 
-State 11
+state 11
 
     2 Procedure: T_proc T_identifier T_openParen ParamList T_closeParen . T_return Type T_openCurly BodyProc T_closeCurly Procedure
 
     T_return  shift, and go to state 14
 
 
-State 12
+state 12
 
    12 ParamListSameType: T_comma T_identifier . ParamListSameType
 
@@ -294,7 +294,7 @@ State 12
     ParamListSameType  go to state 15
 
 
-State 13
+state 13
 
    10 ParamList: T_identifier ParamListSameType T_col . Type ParamListNewType
 
@@ -308,7 +308,7 @@ State 13
     Type  go to state 22
 
 
-State 14
+state 14
 
     2 Procedure: T_proc T_identifier T_openParen ParamList T_closeParen T_return . Type T_openCurly BodyProc T_closeCurly Procedure
 
@@ -322,56 +322,56 @@ State 14
     Type  go to state 23
 
 
-State 15
+state 15
 
    12 ParamListSameType: T_comma T_identifier ParamListSameType .
 
     $default  reduce using rule 12 (ParamListSameType)
 
 
-State 16
+state 16
 
     4 Type: T_bool_type .
 
     $default  reduce using rule 4 (Type)
 
 
-State 17
+state 17
 
     8 Type: T_char_type .
 
     $default  reduce using rule 8 (Type)
 
 
-State 18
+state 18
 
     5 Type: T_int_type .
 
     $default  reduce using rule 5 (Type)
 
 
-State 19
+state 19
 
     9 Type: T_string_type . T_openBracket Num T_closeBracket
 
     T_openBracket  shift, and go to state 24
 
 
-State 20
+state 20
 
     6 Type: T_intptr_type .
 
     $default  reduce using rule 6 (Type)
 
 
-State 21
+state 21
 
     7 Type: T_charptr_type .
 
     $default  reduce using rule 7 (Type)
 
 
-State 22
+state 22
 
    10 ParamList: T_identifier ParamListSameType T_col Type . ParamListNewType
 
@@ -384,14 +384,14 @@ State 22
     ParamListNewType  go to state 27
 
 
-State 23
+state 23
 
     2 Procedure: T_proc T_identifier T_openParen ParamList T_closeParen T_return Type . T_openCurly BodyProc T_closeCurly Procedure
 
     T_openCurly  shift, and go to state 28
 
 
-State 24
+state 24
 
     9 Type: T_string_type T_openBracket . Num T_closeBracket
 
@@ -403,7 +403,7 @@ State 24
     Num  go to state 33
 
 
-State 25
+state 25
 
    14 ParamListNewType: T_semiCol . ParamList
 
@@ -414,21 +414,21 @@ State 25
     ParamList  go to state 34
 
 
-State 26
+state 26
 
    15 ParamListNewType: ParamList .
 
     $default  reduce using rule 15 (ParamListNewType)
 
 
-State 27
+state 27
 
    10 ParamList: T_identifier ParamListSameType T_col Type ParamListNewType .
 
     $default  reduce using rule 10 (ParamList)
 
 
-State 28
+state 28
 
     2 Procedure: T_proc T_identifier T_openParen ParamList T_closeParen T_return Type T_openCurly . BodyProc T_closeCurly Procedure
 
@@ -440,49 +440,49 @@ State 28
     BodyProc   go to state 36
 
 
-State 29
+state 29
 
    64 Num: T_num_oct .
 
     $default  reduce using rule 64 (Num)
 
 
-State 30
+state 30
 
    65 Num: T_num_bin .
 
     $default  reduce using rule 65 (Num)
 
 
-State 31
+state 31
 
    66 Num: T_num_hex .
 
     $default  reduce using rule 66 (Num)
 
 
-State 32
+state 32
 
    63 Num: T_num_dec .
 
     $default  reduce using rule 63 (Num)
 
 
-State 33
+state 33
 
     9 Type: T_string_type T_openBracket Num . T_closeBracket
 
     T_closeBracket  shift, and go to state 37
 
 
-State 34
+state 34
 
    14 ParamListNewType: T_semiCol ParamList .
 
     $default  reduce using rule 14 (ParamListNewType)
 
 
-State 35
+state 35
 
    20 BodyProc: Procedure . BodyVar BodyState Return
 
@@ -493,28 +493,28 @@ State 35
     BodyVar  go to state 39
 
 
-State 36
+state 36
 
     2 Procedure: T_proc T_identifier T_openParen ParamList T_closeParen T_return Type T_openCurly BodyProc . T_closeCurly Procedure
 
     T_closeCurly  shift, and go to state 40
 
 
-State 37
+state 37
 
     9 Type: T_string_type T_openBracket Num T_closeBracket .
 
     $default  reduce using rule 9 (Type)
 
 
-State 38
+state 38
 
    22 BodyVar: T_var . T_identifier BodyVarSameType T_col Type T_semiCol BodyVar
 
     T_identifier  shift, and go to state 41
 
 
-State 39
+state 39
 
    20 BodyProc: Procedure BodyVar . BodyState Return
 
@@ -530,7 +530,7 @@ State 39
     Lhs        go to state 48
 
 
-State 40
+state 40
 
     2 Procedure: T_proc T_identifier T_openParen ParamList T_closeParen T_return Type T_openCurly BodyProc T_closeCurly . Procedure
 
@@ -541,7 +541,7 @@ State 40
     Procedure  go to state 49
 
 
-State 41
+state 41
 
    22 BodyVar: T_var T_identifier . BodyVarSameType T_col Type T_semiCol BodyVar
 
@@ -552,14 +552,14 @@ State 41
     BodyVarSameType  go to state 51
 
 
-State 42
+state 42
 
    36 Lhs: T_deRef . T_identifier
 
     T_identifier  shift, and go to state 52
 
 
-State 43
+state 43
 
    28 BodyState: T_openCurly . BodyVar BodyState T_closeCurly BodyState
 
@@ -570,7 +570,7 @@ State 43
     BodyVar  go to state 53
 
 
-State 44
+state 44
 
    29 BodyState: T_if . T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly BodyState
    30          | T_if . T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly T_else T_openCurly BodyVar BodyState T_closeCurly BodyState
@@ -578,14 +578,14 @@ State 44
     T_openParen  shift, and go to state 54
 
 
-State 45
+state 45
 
    31 BodyState: T_while . T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly BodyState
 
     T_openParen  shift, and go to state 55
 
 
-State 46
+state 46
 
    34 Lhs: T_identifier .
    35    | T_identifier . T_openBracket Expr T_closeBracket
@@ -595,7 +595,7 @@ State 46
     $default  reduce using rule 34 (Lhs)
 
 
-State 47
+state 47
 
    20 BodyProc: Procedure BodyVar BodyState . Return
 
@@ -604,7 +604,7 @@ State 47
     Return  go to state 58
 
 
-State 48
+state 48
 
    26 BodyState: Lhs . T_assign Expr T_semiCol BodyState
    27          | Lhs . T_assign T_string T_semiCol BodyState
@@ -613,35 +613,35 @@ State 48
     T_assign  shift, and go to state 59
 
 
-State 49
+state 49
 
     2 Procedure: T_proc T_identifier T_openParen ParamList T_closeParen T_return Type T_openCurly BodyProc T_closeCurly Procedure .
 
     $default  reduce using rule 2 (Procedure)
 
 
-State 50
+state 50
 
    24 BodyVarSameType: T_comma . T_identifier BodyVarSameType
 
     T_identifier  shift, and go to state 60
 
 
-State 51
+state 51
 
    22 BodyVar: T_var T_identifier BodyVarSameType . T_col Type T_semiCol BodyVar
 
     T_col  shift, and go to state 61
 
 
-State 52
+state 52
 
    36 Lhs: T_deRef T_identifier .
 
     $default  reduce using rule 36 (Lhs)
 
 
-State 53
+state 53
 
    28 BodyState: T_openCurly BodyVar . BodyState T_closeCurly BodyState
 
@@ -657,13 +657,13 @@ State 53
     Lhs        go to state 48
 
 
-State 54
+state 54
 
    29 BodyState: T_if T_openParen . Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly BodyState
    30          | T_if T_openParen . Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly T_else T_openCurly BodyVar BodyState T_closeCurly BodyState
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -683,12 +683,12 @@ State 54
     Num   go to state 76
 
 
-State 55
+state 55
 
    31 BodyState: T_while T_openParen . Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly BodyState
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -708,12 +708,12 @@ State 55
     Num   go to state 76
 
 
-State 56
+state 56
 
    35 Lhs: T_identifier T_openBracket . Expr T_closeBracket
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -733,12 +733,12 @@ State 56
     Num   go to state 76
 
 
-State 57
+state 57
 
    21 Return: T_return . Expr T_semiCol
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -758,21 +758,21 @@ State 57
     Num   go to state 76
 
 
-State 58
+state 58
 
    20 BodyProc: Procedure BodyVar BodyState Return .
 
     $default  reduce using rule 20 (BodyProc)
 
 
-State 59
+state 59
 
    26 BodyState: Lhs T_assign . Expr T_semiCol BodyState
    27          | Lhs T_assign . T_string T_semiCol BodyState
    32          | Lhs T_assign . T_identifier T_openParen Params T_closeParen T_semiCol BodyState
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -793,7 +793,7 @@ State 59
     Num   go to state 76
 
 
-State 60
+state 60
 
    24 BodyVarSameType: T_comma T_identifier . BodyVarSameType
 
@@ -804,7 +804,7 @@ State 60
     BodyVarSameType  go to state 83
 
 
-State 61
+state 61
 
    22 BodyVar: T_var T_identifier BodyVarSameType T_col . Type T_semiCol BodyVar
 
@@ -818,19 +818,19 @@ State 61
     Type  go to state 84
 
 
-State 62
+state 62
 
    28 BodyState: T_openCurly BodyVar BodyState . T_closeCurly BodyState
 
     T_closeCurly  shift, and go to state 85
 
 
-State 63
+state 63
 
-   53 Expr: T_plus . Expr
+   52 Expr: T_minus . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -850,12 +850,12 @@ State 63
     Num   go to state 76
 
 
-State 64
+state 64
 
-   52 Expr: T_minus . Expr
+   53 Expr: T_plus . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -875,12 +875,12 @@ State 64
     Num   go to state 76
 
 
-State 65
+state 65
 
    51 Expr: T_not . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -900,12 +900,12 @@ State 65
     Num   go to state 76
 
 
-State 66
+state 66
 
    55 Expr: T_deRef . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -925,7 +925,7 @@ State 66
     Num   go to state 76
 
 
-State 67
+state 67
 
    54 Expr: T_addr . Lhs
 
@@ -935,12 +935,12 @@ State 67
     Lhs  go to state 90
 
 
-State 68
+state 68
 
    50 Expr: T_openParen . Expr T_closeParen
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -960,35 +960,35 @@ State 68
     Num   go to state 76
 
 
-State 69
+state 69
 
    59 Expr: T_true .
 
     $default  reduce using rule 59 (Expr)
 
 
-State 70
+state 70
 
    60 Expr: T_false .
 
     $default  reduce using rule 60 (Expr)
 
 
-State 71
+state 71
 
    61 Expr: T_char .
 
     $default  reduce using rule 61 (Expr)
 
 
-State 72
+state 72
 
    62 Expr: T_null .
 
     $default  reduce using rule 62 (Expr)
 
 
-State 73
+state 73
 
    56 Expr: T_identifier .
    57     | T_identifier . T_openBracket Expr T_closeBracket
@@ -998,12 +998,12 @@ State 73
     $default  reduce using rule 56 (Expr)
 
 
-State 74
+state 74
 
    37 Expr: T_pipe . Expr T_pipe
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1023,7 +1023,7 @@ State 74
     Num   go to state 76
 
 
-State 75
+state 75
 
    29 BodyState: T_if T_openParen Expr . T_closeParen T_openCurly BodyVar BodyState T_closeCurly BodyState
    30          | T_if T_openParen Expr . T_closeParen T_openCurly BodyVar BodyState T_closeCurly T_else T_openCurly BodyVar BodyState T_closeCurly BodyState
@@ -1048,21 +1048,21 @@ State 75
     T_lessOrEq    shift, and go to state 99
     T_great       shift, and go to state 100
     T_greatOrEq   shift, and go to state 101
-    T_plus        shift, and go to state 102
-    T_minus       shift, and go to state 103
-    T_times       shift, and go to state 104
-    T_divide      shift, and go to state 105
+    T_minus       shift, and go to state 102
+    T_plus        shift, and go to state 103
+    T_divide      shift, and go to state 104
+    T_times       shift, and go to state 105
     T_closeParen  shift, and go to state 106
 
 
-State 76
+state 76
 
    58 Expr: Num .
 
     $default  reduce using rule 58 (Expr)
 
 
-State 77
+state 77
 
    31 BodyState: T_while T_openParen Expr . T_closeParen T_openCurly BodyVar BodyState T_closeCurly BodyState
    38 Expr: Expr . T_less Expr
@@ -1086,14 +1086,14 @@ State 77
     T_lessOrEq    shift, and go to state 99
     T_great       shift, and go to state 100
     T_greatOrEq   shift, and go to state 101
-    T_plus        shift, and go to state 102
-    T_minus       shift, and go to state 103
-    T_times       shift, and go to state 104
-    T_divide      shift, and go to state 105
+    T_minus       shift, and go to state 102
+    T_plus        shift, and go to state 103
+    T_divide      shift, and go to state 104
+    T_times       shift, and go to state 105
     T_closeParen  shift, and go to state 107
 
 
-State 78
+state 78
 
    35 Lhs: T_identifier T_openBracket Expr . T_closeBracket
    38 Expr: Expr . T_less Expr
@@ -1117,14 +1117,14 @@ State 78
     T_lessOrEq      shift, and go to state 99
     T_great         shift, and go to state 100
     T_greatOrEq     shift, and go to state 101
-    T_plus          shift, and go to state 102
-    T_minus         shift, and go to state 103
-    T_times         shift, and go to state 104
-    T_divide        shift, and go to state 105
+    T_minus         shift, and go to state 102
+    T_plus          shift, and go to state 103
+    T_divide        shift, and go to state 104
+    T_times         shift, and go to state 105
     T_closeBracket  shift, and go to state 108
 
 
-State 79
+state 79
 
    21 Return: T_return Expr . T_semiCol
    38 Expr: Expr . T_less Expr
@@ -1148,21 +1148,21 @@ State 79
     T_lessOrEq   shift, and go to state 99
     T_great      shift, and go to state 100
     T_greatOrEq  shift, and go to state 101
-    T_plus       shift, and go to state 102
-    T_minus      shift, and go to state 103
-    T_times      shift, and go to state 104
-    T_divide     shift, and go to state 105
+    T_minus      shift, and go to state 102
+    T_plus       shift, and go to state 103
+    T_divide     shift, and go to state 104
+    T_times      shift, and go to state 105
     T_semiCol    shift, and go to state 109
 
 
-State 80
+state 80
 
    27 BodyState: Lhs T_assign T_string . T_semiCol BodyState
 
     T_semiCol  shift, and go to state 110
 
 
-State 81
+state 81
 
    32 BodyState: Lhs T_assign T_identifier . T_openParen Params T_closeParen T_semiCol BodyState
    56 Expr: T_identifier .
@@ -1174,7 +1174,7 @@ State 81
     $default  reduce using rule 56 (Expr)
 
 
-State 82
+state 82
 
    26 BodyState: Lhs T_assign Expr . T_semiCol BodyState
    38 Expr: Expr . T_less Expr
@@ -1198,28 +1198,28 @@ State 82
     T_lessOrEq   shift, and go to state 99
     T_great      shift, and go to state 100
     T_greatOrEq  shift, and go to state 101
-    T_plus       shift, and go to state 102
-    T_minus      shift, and go to state 103
-    T_times      shift, and go to state 104
-    T_divide     shift, and go to state 105
+    T_minus      shift, and go to state 102
+    T_plus       shift, and go to state 103
+    T_divide     shift, and go to state 104
+    T_times      shift, and go to state 105
     T_semiCol    shift, and go to state 112
 
 
-State 83
+state 83
 
    24 BodyVarSameType: T_comma T_identifier BodyVarSameType .
 
     $default  reduce using rule 24 (BodyVarSameType)
 
 
-State 84
+state 84
 
    22 BodyVar: T_var T_identifier BodyVarSameType T_col Type . T_semiCol BodyVar
 
     T_semiCol  shift, and go to state 113
 
 
-State 85
+state 85
 
    28 BodyState: T_openCurly BodyVar BodyState T_closeCurly . BodyState
 
@@ -1235,29 +1235,7 @@ State 85
     Lhs        go to state 48
 
 
-State 86
-
-   38 Expr: Expr . T_less Expr
-   39     | Expr . T_lessOrEq Expr
-   40     | Expr . T_great Expr
-   41     | Expr . T_greatOrEq Expr
-   42     | Expr . T_isEq Expr
-   43     | Expr . T_notEq Expr
-   44     | Expr . T_and Expr
-   45     | Expr . T_or Expr
-   46     | Expr . T_times Expr
-   47     | Expr . T_divide Expr
-   48     | Expr . T_plus Expr
-   49     | Expr . T_minus Expr
-   53     | T_plus Expr .
-
-    T_times   shift, and go to state 104
-    T_divide  shift, and go to state 105
-
-    $default  reduce using rule 53 (Expr)
-
-
-State 87
+state 86
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -1273,13 +1251,35 @@ State 87
    49     | Expr . T_minus Expr
    52     | T_minus Expr .
 
-    T_times   shift, and go to state 104
-    T_divide  shift, and go to state 105
+    T_divide  shift, and go to state 104
+    T_times   shift, and go to state 105
 
     $default  reduce using rule 52 (Expr)
 
 
-State 88
+state 87
+
+   38 Expr: Expr . T_less Expr
+   39     | Expr . T_lessOrEq Expr
+   40     | Expr . T_great Expr
+   41     | Expr . T_greatOrEq Expr
+   42     | Expr . T_isEq Expr
+   43     | Expr . T_notEq Expr
+   44     | Expr . T_and Expr
+   45     | Expr . T_or Expr
+   46     | Expr . T_times Expr
+   47     | Expr . T_divide Expr
+   48     | Expr . T_plus Expr
+   49     | Expr . T_minus Expr
+   53     | T_plus Expr .
+
+    T_divide  shift, and go to state 104
+    T_times   shift, and go to state 105
+
+    $default  reduce using rule 53 (Expr)
+
+
+state 88
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -1298,7 +1298,7 @@ State 88
     $default  reduce using rule 51 (Expr)
 
 
-State 89
+state 89
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -1317,14 +1317,14 @@ State 89
     $default  reduce using rule 55 (Expr)
 
 
-State 90
+state 90
 
    54 Expr: T_addr Lhs .
 
     $default  reduce using rule 54 (Expr)
 
 
-State 91
+state 91
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -1348,19 +1348,19 @@ State 91
     T_lessOrEq    shift, and go to state 99
     T_great       shift, and go to state 100
     T_greatOrEq   shift, and go to state 101
-    T_plus        shift, and go to state 102
-    T_minus       shift, and go to state 103
-    T_times       shift, and go to state 104
-    T_divide      shift, and go to state 105
+    T_minus       shift, and go to state 102
+    T_plus        shift, and go to state 103
+    T_divide      shift, and go to state 104
+    T_times       shift, and go to state 105
     T_closeParen  shift, and go to state 115
 
 
-State 92
+state 92
 
    57 Expr: T_identifier T_openBracket . Expr T_closeBracket
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1380,7 +1380,7 @@ State 92
     Num   go to state 76
 
 
-State 93
+state 93
 
    37 Expr: T_pipe Expr . T_pipe
    38     | Expr . T_less Expr
@@ -1404,19 +1404,19 @@ State 93
     T_lessOrEq   shift, and go to state 99
     T_great      shift, and go to state 100
     T_greatOrEq  shift, and go to state 101
-    T_plus       shift, and go to state 102
-    T_minus      shift, and go to state 103
-    T_times      shift, and go to state 104
-    T_divide     shift, and go to state 105
+    T_minus      shift, and go to state 102
+    T_plus       shift, and go to state 103
+    T_divide     shift, and go to state 104
+    T_times      shift, and go to state 105
     T_pipe       shift, and go to state 117
 
 
-State 94
+state 94
 
    45 Expr: Expr T_or . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1436,12 +1436,12 @@ State 94
     Num   go to state 76
 
 
-State 95
+state 95
 
    44 Expr: Expr T_and . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1461,12 +1461,12 @@ State 95
     Num   go to state 76
 
 
-State 96
+state 96
 
    42 Expr: Expr T_isEq . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1486,12 +1486,12 @@ State 96
     Num   go to state 76
 
 
-State 97
+state 97
 
    43 Expr: Expr T_notEq . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1511,12 +1511,12 @@ State 97
     Num   go to state 76
 
 
-State 98
+state 98
 
    38 Expr: Expr T_less . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1536,12 +1536,12 @@ State 98
     Num   go to state 76
 
 
-State 99
+state 99
 
    39 Expr: Expr T_lessOrEq . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1561,12 +1561,12 @@ State 99
     Num   go to state 76
 
 
-State 100
+state 100
 
    40 Expr: Expr T_great . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1586,12 +1586,12 @@ State 100
     Num   go to state 76
 
 
-State 101
+state 101
 
    41 Expr: Expr T_greatOrEq . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1611,12 +1611,12 @@ State 101
     Num   go to state 76
 
 
-State 102
+state 102
 
-   48 Expr: Expr T_plus . Expr
+   49 Expr: Expr T_minus . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1636,12 +1636,12 @@ State 102
     Num   go to state 76
 
 
-State 103
+state 103
 
-   49 Expr: Expr T_minus . Expr
+   48 Expr: Expr T_plus . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1661,12 +1661,12 @@ State 103
     Num   go to state 76
 
 
-State 104
+state 104
 
-   46 Expr: Expr T_times . Expr
+   47 Expr: Expr T_divide . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1686,12 +1686,12 @@ State 104
     Num   go to state 76
 
 
-State 105
+state 105
 
-   47 Expr: Expr T_divide . Expr
+   46 Expr: Expr T_times . Expr
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1711,7 +1711,7 @@ State 105
     Num   go to state 76
 
 
-State 106
+state 106
 
    29 BodyState: T_if T_openParen Expr T_closeParen . T_openCurly BodyVar BodyState T_closeCurly BodyState
    30          | T_if T_openParen Expr T_closeParen . T_openCurly BodyVar BodyState T_closeCurly T_else T_openCurly BodyVar BodyState T_closeCurly BodyState
@@ -1719,28 +1719,28 @@ State 106
     T_openCurly  shift, and go to state 130
 
 
-State 107
+state 107
 
    31 BodyState: T_while T_openParen Expr T_closeParen . T_openCurly BodyVar BodyState T_closeCurly BodyState
 
     T_openCurly  shift, and go to state 131
 
 
-State 108
+state 108
 
    35 Lhs: T_identifier T_openBracket Expr T_closeBracket .
 
     $default  reduce using rule 35 (Lhs)
 
 
-State 109
+state 109
 
    21 Return: T_return Expr T_semiCol .
 
     $default  reduce using rule 21 (Return)
 
 
-State 110
+state 110
 
    27 BodyState: Lhs T_assign T_string T_semiCol . BodyState
 
@@ -1756,12 +1756,12 @@ State 110
     Lhs        go to state 48
 
 
-State 111
+state 111
 
    32 BodyState: Lhs T_assign T_identifier T_openParen . Params T_closeParen T_semiCol BodyState
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -1784,7 +1784,7 @@ State 111
     Num     go to state 76
 
 
-State 112
+state 112
 
    26 BodyState: Lhs T_assign Expr T_semiCol . BodyState
 
@@ -1800,7 +1800,7 @@ State 112
     Lhs        go to state 48
 
 
-State 113
+state 113
 
    22 BodyVar: T_var T_identifier BodyVarSameType T_col Type T_semiCol . BodyVar
 
@@ -1811,21 +1811,21 @@ State 113
     BodyVar  go to state 136
 
 
-State 114
+state 114
 
    28 BodyState: T_openCurly BodyVar BodyState T_closeCurly BodyState .
 
     $default  reduce using rule 28 (BodyState)
 
 
-State 115
+state 115
 
    50 Expr: T_openParen Expr T_closeParen .
 
     $default  reduce using rule 50 (Expr)
 
 
-State 116
+state 116
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -1849,21 +1849,21 @@ State 116
     T_lessOrEq      shift, and go to state 99
     T_great         shift, and go to state 100
     T_greatOrEq     shift, and go to state 101
-    T_plus          shift, and go to state 102
-    T_minus         shift, and go to state 103
-    T_times         shift, and go to state 104
-    T_divide        shift, and go to state 105
+    T_minus         shift, and go to state 102
+    T_plus          shift, and go to state 103
+    T_divide        shift, and go to state 104
+    T_times         shift, and go to state 105
     T_closeBracket  shift, and go to state 137
 
 
-State 117
+state 117
 
    37 Expr: T_pipe Expr T_pipe .
 
     $default  reduce using rule 37 (Expr)
 
 
-State 118
+state 118
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -1886,15 +1886,15 @@ State 118
     T_lessOrEq   shift, and go to state 99
     T_great      shift, and go to state 100
     T_greatOrEq  shift, and go to state 101
-    T_plus       shift, and go to state 102
-    T_minus      shift, and go to state 103
-    T_times      shift, and go to state 104
-    T_divide     shift, and go to state 105
+    T_minus      shift, and go to state 102
+    T_plus       shift, and go to state 103
+    T_divide     shift, and go to state 104
+    T_times      shift, and go to state 105
 
     $default  reduce using rule 45 (Expr)
 
 
-State 119
+state 119
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -1916,15 +1916,15 @@ State 119
     T_lessOrEq   shift, and go to state 99
     T_great      shift, and go to state 100
     T_greatOrEq  shift, and go to state 101
-    T_plus       shift, and go to state 102
-    T_minus      shift, and go to state 103
-    T_times      shift, and go to state 104
-    T_divide     shift, and go to state 105
+    T_minus      shift, and go to state 102
+    T_plus       shift, and go to state 103
+    T_divide     shift, and go to state 104
+    T_times      shift, and go to state 105
 
     $default  reduce using rule 44 (Expr)
 
 
-State 120
+state 120
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -1945,15 +1945,15 @@ State 120
     T_lessOrEq   shift, and go to state 99
     T_great      shift, and go to state 100
     T_greatOrEq  shift, and go to state 101
-    T_plus       shift, and go to state 102
-    T_minus      shift, and go to state 103
-    T_times      shift, and go to state 104
-    T_divide     shift, and go to state 105
+    T_minus      shift, and go to state 102
+    T_plus       shift, and go to state 103
+    T_divide     shift, and go to state 104
+    T_times      shift, and go to state 105
 
     $default  reduce using rule 42 (Expr)
 
 
-State 121
+state 121
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -1973,15 +1973,15 @@ State 121
     T_lessOrEq   shift, and go to state 99
     T_great      shift, and go to state 100
     T_greatOrEq  shift, and go to state 101
-    T_plus       shift, and go to state 102
-    T_minus      shift, and go to state 103
-    T_times      shift, and go to state 104
-    T_divide     shift, and go to state 105
+    T_minus      shift, and go to state 102
+    T_plus       shift, and go to state 103
+    T_divide     shift, and go to state 104
+    T_times      shift, and go to state 105
 
     $default  reduce using rule 43 (Expr)
 
 
-State 122
+state 122
 
    38 Expr: Expr . T_less Expr
    38     | Expr T_less Expr .
@@ -2000,15 +2000,15 @@ State 122
     T_lessOrEq   shift, and go to state 99
     T_great      shift, and go to state 100
     T_greatOrEq  shift, and go to state 101
-    T_plus       shift, and go to state 102
-    T_minus      shift, and go to state 103
-    T_times      shift, and go to state 104
-    T_divide     shift, and go to state 105
+    T_minus      shift, and go to state 102
+    T_plus       shift, and go to state 103
+    T_divide     shift, and go to state 104
+    T_times      shift, and go to state 105
 
     $default  reduce using rule 38 (Expr)
 
 
-State 123
+state 123
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -2026,15 +2026,15 @@ State 123
 
     T_great      shift, and go to state 100
     T_greatOrEq  shift, and go to state 101
-    T_plus       shift, and go to state 102
-    T_minus      shift, and go to state 103
-    T_times      shift, and go to state 104
-    T_divide     shift, and go to state 105
+    T_minus      shift, and go to state 102
+    T_plus       shift, and go to state 103
+    T_divide     shift, and go to state 104
+    T_times      shift, and go to state 105
 
     $default  reduce using rule 39 (Expr)
 
 
-State 124
+state 124
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -2051,15 +2051,15 @@ State 124
    49     | Expr . T_minus Expr
 
     T_greatOrEq  shift, and go to state 101
-    T_plus       shift, and go to state 102
-    T_minus      shift, and go to state 103
-    T_times      shift, and go to state 104
-    T_divide     shift, and go to state 105
+    T_minus      shift, and go to state 102
+    T_plus       shift, and go to state 103
+    T_divide     shift, and go to state 104
+    T_times      shift, and go to state 105
 
     $default  reduce using rule 40 (Expr)
 
 
-State 125
+state 125
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -2075,37 +2075,15 @@ State 125
    48     | Expr . T_plus Expr
    49     | Expr . T_minus Expr
 
-    T_plus    shift, and go to state 102
-    T_minus   shift, and go to state 103
-    T_times   shift, and go to state 104
-    T_divide  shift, and go to state 105
+    T_minus   shift, and go to state 102
+    T_plus    shift, and go to state 103
+    T_divide  shift, and go to state 104
+    T_times   shift, and go to state 105
 
     $default  reduce using rule 41 (Expr)
 
 
-State 126
-
-   38 Expr: Expr . T_less Expr
-   39     | Expr . T_lessOrEq Expr
-   40     | Expr . T_great Expr
-   41     | Expr . T_greatOrEq Expr
-   42     | Expr . T_isEq Expr
-   43     | Expr . T_notEq Expr
-   44     | Expr . T_and Expr
-   45     | Expr . T_or Expr
-   46     | Expr . T_times Expr
-   47     | Expr . T_divide Expr
-   48     | Expr . T_plus Expr
-   48     | Expr T_plus Expr .
-   49     | Expr . T_minus Expr
-
-    T_times   shift, and go to state 104
-    T_divide  shift, and go to state 105
-
-    $default  reduce using rule 48 (Expr)
-
-
-State 127
+state 126
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -2121,13 +2099,13 @@ State 127
    49     | Expr . T_minus Expr
    49     | Expr T_minus Expr .
 
-    T_times   shift, and go to state 104
-    T_divide  shift, and go to state 105
+    T_divide  shift, and go to state 104
+    T_times   shift, and go to state 105
 
     $default  reduce using rule 49 (Expr)
 
 
-State 128
+state 127
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -2138,15 +2116,18 @@ State 128
    44     | Expr . T_and Expr
    45     | Expr . T_or Expr
    46     | Expr . T_times Expr
-   46     | Expr T_times Expr .
    47     | Expr . T_divide Expr
    48     | Expr . T_plus Expr
+   48     | Expr T_plus Expr .
    49     | Expr . T_minus Expr
 
-    $default  reduce using rule 46 (Expr)
+    T_divide  shift, and go to state 104
+    T_times   shift, and go to state 105
+
+    $default  reduce using rule 48 (Expr)
 
 
-State 129
+state 128
 
    38 Expr: Expr . T_less Expr
    39     | Expr . T_lessOrEq Expr
@@ -2165,7 +2146,26 @@ State 129
     $default  reduce using rule 47 (Expr)
 
 
-State 130
+state 129
+
+   38 Expr: Expr . T_less Expr
+   39     | Expr . T_lessOrEq Expr
+   40     | Expr . T_great Expr
+   41     | Expr . T_greatOrEq Expr
+   42     | Expr . T_isEq Expr
+   43     | Expr . T_notEq Expr
+   44     | Expr . T_and Expr
+   45     | Expr . T_or Expr
+   46     | Expr . T_times Expr
+   46     | Expr T_times Expr .
+   47     | Expr . T_divide Expr
+   48     | Expr . T_plus Expr
+   49     | Expr . T_minus Expr
+
+    $default  reduce using rule 46 (Expr)
+
+
+state 130
 
    29 BodyState: T_if T_openParen Expr T_closeParen T_openCurly . BodyVar BodyState T_closeCurly BodyState
    30          | T_if T_openParen Expr T_closeParen T_openCurly . BodyVar BodyState T_closeCurly T_else T_openCurly BodyVar BodyState T_closeCurly BodyState
@@ -2177,7 +2177,7 @@ State 130
     BodyVar  go to state 138
 
 
-State 131
+state 131
 
    31 BodyState: T_while T_openParen Expr T_closeParen T_openCurly . BodyVar BodyState T_closeCurly BodyState
 
@@ -2188,21 +2188,21 @@ State 131
     BodyVar  go to state 139
 
 
-State 132
+state 132
 
    27 BodyState: Lhs T_assign T_string T_semiCol BodyState .
 
     $default  reduce using rule 27 (BodyState)
 
 
-State 133
+state 133
 
    32 BodyState: Lhs T_assign T_identifier T_openParen Params . T_closeParen T_semiCol BodyState
 
     T_closeParen  shift, and go to state 140
 
 
-State 134
+state 134
 
    16 Params: Expr . ParamsMore
    38 Expr: Expr . T_less Expr
@@ -2227,38 +2227,38 @@ State 134
     T_lessOrEq   shift, and go to state 99
     T_great      shift, and go to state 100
     T_greatOrEq  shift, and go to state 101
-    T_plus       shift, and go to state 102
-    T_minus      shift, and go to state 103
-    T_times      shift, and go to state 104
-    T_divide     shift, and go to state 105
+    T_minus      shift, and go to state 102
+    T_plus       shift, and go to state 103
+    T_divide     shift, and go to state 104
+    T_times      shift, and go to state 105
 
     $default  reduce using rule 19 (ParamsMore)
 
     ParamsMore  go to state 142
 
 
-State 135
+state 135
 
    26 BodyState: Lhs T_assign Expr T_semiCol BodyState .
 
     $default  reduce using rule 26 (BodyState)
 
 
-State 136
+state 136
 
    22 BodyVar: T_var T_identifier BodyVarSameType T_col Type T_semiCol BodyVar .
 
     $default  reduce using rule 22 (BodyVar)
 
 
-State 137
+state 137
 
    57 Expr: T_identifier T_openBracket Expr T_closeBracket .
 
     $default  reduce using rule 57 (Expr)
 
 
-State 138
+state 138
 
    29 BodyState: T_if T_openParen Expr T_closeParen T_openCurly BodyVar . BodyState T_closeCurly BodyState
    30          | T_if T_openParen Expr T_closeParen T_openCurly BodyVar . BodyState T_closeCurly T_else T_openCurly BodyVar BodyState T_closeCurly BodyState
@@ -2275,7 +2275,7 @@ State 138
     Lhs        go to state 48
 
 
-State 139
+state 139
 
    31 BodyState: T_while T_openParen Expr T_closeParen T_openCurly BodyVar . BodyState T_closeCurly BodyState
 
@@ -2291,19 +2291,19 @@ State 139
     Lhs        go to state 48
 
 
-State 140
+state 140
 
    32 BodyState: Lhs T_assign T_identifier T_openParen Params T_closeParen . T_semiCol BodyState
 
     T_semiCol  shift, and go to state 145
 
 
-State 141
+state 141
 
    18 ParamsMore: T_comma . Expr ParamsMore
 
-    T_plus        shift, and go to state 63
-    T_minus       shift, and go to state 64
+    T_minus       shift, and go to state 63
+    T_plus        shift, and go to state 64
     T_not         shift, and go to state 65
     T_deRef       shift, and go to state 66
     T_addr        shift, and go to state 67
@@ -2323,14 +2323,14 @@ State 141
     Num   go to state 76
 
 
-State 142
+state 142
 
    16 Params: Expr ParamsMore .
 
     $default  reduce using rule 16 (Params)
 
 
-State 143
+state 143
 
    29 BodyState: T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState . T_closeCurly BodyState
    30          | T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState . T_closeCurly T_else T_openCurly BodyVar BodyState T_closeCurly BodyState
@@ -2338,14 +2338,14 @@ State 143
     T_closeCurly  shift, and go to state 147
 
 
-State 144
+state 144
 
    31 BodyState: T_while T_openParen Expr T_closeParen T_openCurly BodyVar BodyState . T_closeCurly BodyState
 
     T_closeCurly  shift, and go to state 148
 
 
-State 145
+state 145
 
    32 BodyState: Lhs T_assign T_identifier T_openParen Params T_closeParen T_semiCol . BodyState
 
@@ -2361,7 +2361,7 @@ State 145
     Lhs        go to state 48
 
 
-State 146
+state 146
 
    18 ParamsMore: T_comma Expr . ParamsMore
    38 Expr: Expr . T_less Expr
@@ -2386,17 +2386,17 @@ State 146
     T_lessOrEq   shift, and go to state 99
     T_great      shift, and go to state 100
     T_greatOrEq  shift, and go to state 101
-    T_plus       shift, and go to state 102
-    T_minus      shift, and go to state 103
-    T_times      shift, and go to state 104
-    T_divide     shift, and go to state 105
+    T_minus      shift, and go to state 102
+    T_plus       shift, and go to state 103
+    T_divide     shift, and go to state 104
+    T_times      shift, and go to state 105
 
     $default  reduce using rule 19 (ParamsMore)
 
     ParamsMore  go to state 150
 
 
-State 147
+state 147
 
    29 BodyState: T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly . BodyState
    30          | T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly . T_else T_openCurly BodyVar BodyState T_closeCurly BodyState
@@ -2414,7 +2414,7 @@ State 147
     Lhs        go to state 48
 
 
-State 148
+state 148
 
    31 BodyState: T_while T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly . BodyState
 
@@ -2430,42 +2430,42 @@ State 148
     Lhs        go to state 48
 
 
-State 149
+state 149
 
    32 BodyState: Lhs T_assign T_identifier T_openParen Params T_closeParen T_semiCol BodyState .
 
     $default  reduce using rule 32 (BodyState)
 
 
-State 150
+state 150
 
    18 ParamsMore: T_comma Expr ParamsMore .
 
     $default  reduce using rule 18 (ParamsMore)
 
 
-State 151
+state 151
 
    30 BodyState: T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly T_else . T_openCurly BodyVar BodyState T_closeCurly BodyState
 
     T_openCurly  shift, and go to state 154
 
 
-State 152
+state 152
 
    29 BodyState: T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly BodyState .
 
     $default  reduce using rule 29 (BodyState)
 
 
-State 153
+state 153
 
    31 BodyState: T_while T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly BodyState .
 
     $default  reduce using rule 31 (BodyState)
 
 
-State 154
+state 154
 
    30 BodyState: T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly T_else T_openCurly . BodyVar BodyState T_closeCurly BodyState
 
@@ -2476,7 +2476,7 @@ State 154
     BodyVar  go to state 155
 
 
-State 155
+state 155
 
    30 BodyState: T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly T_else T_openCurly BodyVar . BodyState T_closeCurly BodyState
 
@@ -2492,14 +2492,14 @@ State 155
     Lhs        go to state 48
 
 
-State 156
+state 156
 
    30 BodyState: T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly T_else T_openCurly BodyVar BodyState . T_closeCurly BodyState
 
     T_closeCurly  shift, and go to state 157
 
 
-State 157
+state 157
 
    30 BodyState: T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly T_else T_openCurly BodyVar BodyState T_closeCurly . BodyState
 
@@ -2515,7 +2515,7 @@ State 157
     Lhs        go to state 48
 
 
-State 158
+state 158
 
    30 BodyState: T_if T_openParen Expr T_closeParen T_openCurly BodyVar BodyState T_closeCurly T_else T_openCurly BodyVar BodyState T_closeCurly BodyState .
 
